@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getBookById } from '../Data';
+import { useCart } from '../context/CartContext';
 
 function BookDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const book = getBookById(id);
+  const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [imgError, setImgError] = useState(false);
+  const [added, setAdded] = useState(false);
 
   if (!book) {
     return (
@@ -34,6 +38,17 @@ function BookDetailPage() {
     }
   };
 
+  const handleAddToCart = () => {
+    addToCart(book.id, quantity);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  };
+
+  const handleBuyNow = () => {
+    addToCart(book.id, quantity);
+    navigate('/order');
+  };
+
   return (
     <>
       <nav className="breadcrumb" aria-label="面包屑导航">
@@ -58,7 +73,6 @@ function BookDetailPage() {
             <span className="detail-cover-ph">{book.coverEmoji}</span>
           ) : (
             <img
-              id="detail-cover-img"
               src={book.coverImg}
               alt={`${book.title}封面`}
               className="detail-cover-img"
@@ -107,8 +121,12 @@ function BookDetailPage() {
                 aria-label="增加数量"
               >+</button>
             </div>
-            <Link to="/cart" className="btn btn-primary btn-lg">加入购物车</Link>
-            <Link to="/order" className="btn btn-secondary btn-lg">立即购买</Link>
+            <button className="btn btn-primary btn-lg" onClick={handleAddToCart}>
+              {added ? '✓ 已加入' : '加入购物车'}
+            </button>
+            <button className="btn btn-secondary btn-lg" onClick={handleBuyNow}>
+              立即购买
+            </button>
           </div>
         </div>
       </div>

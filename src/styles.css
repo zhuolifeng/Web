@@ -303,9 +303,8 @@ input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 60vh;
   padding: 40px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .login-card {
@@ -472,7 +471,8 @@ input, select, textarea {
   display: block;
 }
 
-.book-cover-placeholder {
+.book-cover-placeholder,
+.book-cover-ph {
   font-size: 64px;
   color: var(--text-muted);
 }
@@ -1097,20 +1097,12 @@ input, select, textarea {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: none;
-}
-
-.detail-cover-img.is-loaded {
   display: block;
 }
 
 .detail-cover-ph {
-  display: none;
   font-size: 120px;
   color: var(--text-muted);
-}
-
-.detail-cover-ph.is-visible {
   display: flex;
   align-items: center;
   justify-content: center;
