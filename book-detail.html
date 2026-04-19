@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>书籍详情 - 猪猪书城</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/books.js"></script>
+</head>
+<body>
+  <div class="page-wrapper">
+    <header class="header">
+      <div class="header-inner">
+        <a href="index.html" class="logo">
+          <span class="logo-icon">📚</span>
+          <span>猪猪书城</span>
+        </a>
+
+        <nav>
+          <ul class="nav-list">
+            <li><a href="index.html" class="nav-link">首页</a></li>
+            <li><a href="#" class="nav-link">分类</a></li>
+            <li><a href="#" class="nav-link">排行</a></li>
+            <li><a href="#" class="nav-link">书单</a></li>
+          </ul>
+        </nav>
+
+        <div class="header-actions">
+          <a href="cart.html" class="btn btn-secondary btn-sm">🛒 购物车</a>
+          <a href="login.html" class="btn btn-primary btn-sm">登录</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="container">
+        <nav class="breadcrumb" aria-label="面包屑导航">
+          <ol class="breadcrumb-list" id="breadcrumb"></ol>
+        </nav>
+
+        <div class="detail-wrapper">
+          <figure class="detail-cover">
+            <img id="detail-cover-img" src="" alt="" class="detail-cover-img">
+            <span id="detail-cover-ph" class="detail-cover-ph">📖</span>
+          </figure>
+
+          <div class="detail-info">
+            <h1 class="detail-title" id="detail-title"></h1>
+            <p class="detail-author" id="detail-author"></p>
+
+            <div class="detail-rating">
+              <span class="detail-stars" id="detail-stars"></span>
+              <span class="detail-price-num" id="detail-rating-num"></span>
+              <span class="rating-count" id="detail-rating-count"></span>
+            </div>
+
+            <p class="detail-description" id="detail-description"></p>
+
+            <div class="detail-price-box">
+              <div class="detail-price" id="detail-price"></div>
+              <div class="detail-original-price" id="detail-original-price"></div>
+              <div class="detail-stock">✓ 库存充足</div>
+            </div>
+
+            <div class="detail-actions">
+              <div class="quantity-control">
+                <button class="quantity-btn" id="btn-decrease" aria-label="减少数量">−</button>
+                <input type="number" class="quantity-input" id="quantity-input" value="1" min="1" max="99" aria-label="购买数量">
+                <button class="quantity-btn" id="btn-increase" aria-label="增加数量">+</button>
+              </div>
+              <a href="cart.html" class="btn btn-primary btn-lg" id="btn-add-cart">加入购物车</a>
+              <a href="order.html" class="btn btn-secondary btn-lg" id="btn-buy-now">立即购买</a>
+            </div>
+          </div>
+        </div>
+
+        <section class="book-detail-section">
+          <div class="section-header">
+            <h2 class="section-title">书籍详情</h2>
+          </div>
+          <div class="card book-detail-card">
+            <article>
+              <h3 class="book-detail-subtitle">内容简介</h3>
+              <p class="book-detail-text" id="detail-intro"></p>
+
+              <h3 class="book-detail-subtitle">作者简介</h3>
+              <p class="book-detail-text" id="detail-author-bio"></p>
+
+              <h3 class="book-detail-subtitle">书籍信息</h3>
+              <dl class="book-detail-info" id="detail-info-list"></dl>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2026 猪猪书城. 探索知识的无限可能</p>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var bookId = params.get('id') || '1';
+      var book = books[bookId];
+
+      var coverImg = document.getElementById('detail-cover-img');
+      var coverPh = document.getElementById('detail-cover-ph');
+
+      coverImg.src = book.coverImg;
+      coverImg.alt = book.title + '封面';
+      coverImg.addEventListener('load', function () {
+        coverImg.classList.add('is-loaded');
+        coverPh.classList.add('is-hidden');
+      });
+      coverImg.addEventListener('error', function () {
+        coverImg.classList.add('is-error');
+        coverPh.textContent = book.coverEmoji;
+        coverPh.classList.add('is-visible');
+      });
+      coverPh.textContent = book.coverEmoji;
+
+      document.getElementById('detail-title').textContent = book.title;
+      document.getElementById('detail-author').textContent = book.author;
+      document.getElementById('detail-stars').textContent = book.stars;
+      document.getElementById('detail-rating-num').textContent = book.ratingNum;
+      document.getElementById('detail-rating-count').textContent = book.ratingCount;
+      document.getElementById('detail-description').textContent = book.description;
+      document.getElementById('detail-price').textContent = book.price;
+      document.getElementById('detail-original-price').textContent = book.originalPrice;
+      document.getElementById('detail-intro').textContent = book.intro;
+      document.getElementById('detail-author-bio').textContent = book.authorBio;
+
+      document.getElementById('breadcrumb').innerHTML =
+        '<li class="breadcrumb-item">' +
+          '<a href="index.html" class="breadcrumb-link">首页</a>' +
+          '<span class="breadcrumb-sep">/</span>' +
+        '</li>' +
+        '<li class="breadcrumb-item">' +
+          '<a href="#" class="breadcrumb-link">' + book.category + '</a>' +
+          '<span class="breadcrumb-sep">/</span>' +
+        '</li>' +
+        '<li class="breadcrumb-item">' +
+          '<span class="breadcrumb-current">' + book.title + '</span>' +
+        '</li>';
+
+      var infoList = document.getElementById('detail-info-list');
+      for (var key in book.info) {
+        if (book.info.hasOwnProperty(key)) {
+          infoList.innerHTML += '<dt>' + key + '</dt><dd>' + book.info[key] + '</dd>';
+        }
+      }
+
+      document.title = book.title + ' - 猪猪书城';
+
+      var qtyInput = document.getElementById('quantity-input');
+      document.getElementById('btn-decrease').addEventListener('click', function () {
+        var v = parseInt(qtyInput.value, 10) || 1;
+        if (v > 1) { qtyInput.value = v - 1; }
+      });
+      document.getElementById('btn-increase').addEventListener('click', function () {
+        var v = parseInt(qtyInput.value, 10) || 1;
+        if (v < 99) { qtyInput.value = v + 1; }
+      });
+    }());
+  </script>
+</body>
+</html>
