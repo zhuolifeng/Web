@@ -14,7 +14,7 @@ export const books = [
     intro: '《百年孤独》内容复杂，人物众多，情节离奇，手法新颖。马尔克斯在布恩迪亚家族中反复地用同一个名字，为读者造成极大的困扰。然而，正是这种独特的命名方式，象征着这个家族百年来的孤独与轮回。',
     authorBio: '加夫列尔·加西亚·马尔克斯（Gabriel García Márquez，1927-2014），哥伦比亚作家、记者和社会活动家，拉丁美洲魔幻现实主义文学的代表人物，20世纪最有影响力的作家之一，1982年诺贝尔文学奖得主。',
     info: { '出版社': '南海出版公司', '出版日期': '2017年8月', '页数': '360页', 'ISBN': '978-7-5442-7115-3', '装帧': '精装' },
-    coverImg: 'images/100-years-of-solitude.jpg',
+    coverImg: '/images/100-years-of-solitude.jpg',
     coverEmoji: '📖'
   },
   {
@@ -32,7 +32,7 @@ export const books = [
     intro: '这是一部宏大的人类进化史。作者从认知革命、农业革命、人类的融合统一、科学革命四个维度，讲述了人类从动物界脱颖而出的历程，揭示了人类如何成为地球的主宰，以及未来可能的走向。',
     authorBio: '尤瓦尔·赫拉利（Yuval Noah Harari），1976年生，以色列历史学家，耶路撒冷希伯来大学历史系教授，专注于世界历史和宏观历史进程研究。',
     info: { '出版社': '中信出版社', '出版日期': '2016年9月', '页数': '432页', 'ISBN': '978-7-5086-6073-6', '装帧': '��装' },
-    coverImg: 'images/sapiens.jpg',
+    coverImg: '/images/sapiens.jpg',
     coverEmoji: '📕'
   },
   {
@@ -50,7 +50,7 @@ export const books = [
     intro: '《活着》是一篇读起来让人感到沉重的小说。余华用平实的语言讲述了一个农民家庭在时代变迁中的苦难历程。',
     authorBio: '余华，1960年生，浙江海盐人，中国当代著名作家。代表作品有《活着》《许三观卖血记》《兄弟》等。',
     info: { '出版社': '作家出版社', '出版日期': '2012年8月', '页数': '191页', 'ISBN': '978-7-5063-6549-9', '装帧': '平装' },
-    coverImg: 'images/to-live.jpg',
+    coverImg: '/images/to-live.jpg',
     coverEmoji: '📗'
   },
   {
@@ -68,7 +68,7 @@ export const books = [
     intro: '文化大革命期间，天体物理学家叶文洁向三体世界发出了地球文明的第一声啼鸣。四光年外的三体文明接收到了信号，开始入侵地球。',
     authorBio: '刘慈欣，1963年生，山西阳泉人，中国科幻小说代表作家，高级工程师。2015年凭借《三体》获雨果奖最佳长篇故事奖。',
     info: { '出版社': '重庆出版社', '出版日期': '2010年11月', '页数': '930页', 'ISBN': '978-7-229-03026-9', '装帧': '精装' },
-    coverImg: 'images/three-body.jpg',
+    coverImg: '/images/three-body.jpg',
     coverEmoji: '📘'
   },
   {
@@ -86,7 +86,7 @@ export const books = [
     intro: '卡尼曼在书中系统性地介绍了影响人类思维的两大系统：系统1（快思考）和系统2（慢思考）。',
     authorBio: '丹尼尔·卡尼曼（Daniel Kahneman，1934-2024），以色列裔美国心理学家，2002年诺贝尔经济学奖得主。',
     info: { '出版社': '中信出版社', '出版日期': '2012年7月', '页数': '396页', 'ISBN': '978-7-5086-3452-4', '装帧': '平装' },
-    coverImg: 'images/thinking-fast-slow.jpg',
+    coverImg: '/images/thinking-fast-slow.jpg',
     coverEmoji: '📙'
   },
   {
@@ -104,7 +104,7 @@ export const books = [
     intro: '小王子离开自己的星球后，相继拜访了多个星球，最终来到了地球。他与狐狸的相遇让他懂得了什么是真正的友谊和爱情。',
     authorBio: '安托万·德·圣-埃克苏佩里（Antoine de Saint-Exupéry，1900-1944），法国作家、飞行员。',
     info: { '出版社': '人民文学出版社', '出版日期': '2003年7月', '页数': '109页', 'ISBN': '978-7-0200-5347-7', '装帧': '平装' },
-    coverImg: 'images/little-prince.jpg',
+    coverImg: '/images/little-prince.jpg',
     coverEmoji: '📔'
   },
   {
@@ -122,7 +122,7 @@ export const books = [
     intro: '本书是原研哉在武藏野美术大学的基础设计讲座整理而成。他从设计的原点出发，探讨了如何通过设计思维重新审视日常生活中的物品。',
     authorBio: '原研哉（Kenya Hara），1958年生，日本著名平面设计大师，武藏野美术大学教授，无印良品艺术总监。',
     info: { '出版社': '山东人民出版社', '出版日期': '2006年10月', '页数': '224页', 'ISBN': '978-7-209-04077-2', '装帧': '平装' },
-    coverImg: 'images/design-of-design.jpg',
+    coverImg: '/images/design-of-design.jpg',
     coverEmoji: '📓'
   },
   {
@@ -140,7 +140,7 @@ export const books = [
     intro: '故事以阿富汗的历史变迁为背景，通过阿米尔的视角，展现了人性的复杂与挣扎。',
     authorBio: '卡勒德·胡赛尼（Khaled Hosseini），1965年生，阿富汗裔美国作家、医生。',
     info: { '出版社': '上海人民出版社', '出版日期': '2006年9月', '页数': '362页', 'ISBN': '978-7-2080-6431-4', '装帧': '平装' },
-    coverImg: 'images/kite-runner.jpg',
+    coverImg: '/images/kite-runner.jpg',
     coverEmoji: '📒'
   }
 ];
