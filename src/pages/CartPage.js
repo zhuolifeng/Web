@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Table,
@@ -28,6 +29,12 @@ function CartPage() {
     cartTotal,
     cartOriginalTotal,
   } = useCart();
+
+  const [imgErrors, setImgErrors] = useState({});
+
+  const handleImgError = (id) => {
+    setImgErrors(prev => ({ ...prev, [id]: true }));
+  };
 
   if (cartItems.length === 0) {
     return (
@@ -64,9 +71,19 @@ function CartPage() {
               justifyContent: 'center',
               fontSize: 28,
               flexShrink: 0,
+              overflow: 'hidden',
             }}
           >
-            {record.coverEmoji}
+            {imgErrors[record.id] ? (
+              <span>{record.coverEmoji}</span>
+            ) : (
+              <img
+                src={record.coverImg}
+                alt={record.title}
+                onError={() => handleImgError(record.id)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
           </div>
           <div>
             <Link to={`/book/${record.id}`}>

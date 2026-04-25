@@ -30,6 +30,7 @@ function BookDetailPage() {
   const book = getBookById(id);
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [imgError, setImgError] = useState(false);
 
   if (!book) {
     return (
@@ -78,10 +79,19 @@ function BookDetailPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 120,
+              overflow: 'hidden',
             }}
           >
-            {book.coverEmoji}
+            {imgError ? (
+              <span style={{ fontSize: 120 }}>{book.coverEmoji}</span>
+            ) : (
+              <img
+                src={book.coverImg}
+                alt={`${book.title}封面`}
+                onError={() => setImgError(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
           </div>
 
           {/* Info */}

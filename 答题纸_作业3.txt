@@ -5,102 +5,215 @@
 一、设计方案概述
 --------------------------------------------------------------------------------
 
-本次作业将原有的"猪猪书城"静态网站重构为基于 React 和 React Router 的单页应用（SPA）。
-实现了五个核心页面之间的路由跳转：首页（书籍列表）、书籍详情页、购物车页、订单确认页
-和登录页。通过 URL 参数传递书籍 ID 实现列表与详情的数据关联，通过 React Context API
-实现购物车的跨组件全局状态管理，所有表单均采用受控组件模式。
+本次作业将原有的"猪猪书城"静态网站重构为基于 React、React Router 和 Ant Design
+的单页应用（SPA）。采用 Ant Design 的 Layout.Sider + Menu 实现左侧菜单导航，
+实现了四个核心页面：首页（书籍列表）、书籍详情页、购物车页和个人信息页，并额外
+实现了订单确认页和登录页。通过 React Context API 实现购物车的跨组件全局状态管理，
+所有表单均采用 Ant Design 的 Form 组件进行受控管理。
 
 
-二、React 构件式开发原则的遵循
+二、React 构件式开发原则的遵循（2 分）
 --------------------------------------------------------------------------------
 
 1. 单一职责原则（Single Responsibility Principle）
 
    每个 React 组件都只负责一个功能领域：
-   - Header 组件：负责渲染顶部导航栏、logo 和购物车计数徽标
-   - Footer 组件：仅负责渲染页脚内容
-   - BookCard 组件：仅负责渲染单本书籍的卡片展示，包含图片容错处理
-   - BookList 组件：仅负责渲染书籍列表网格布局
-   - Layout 组件：仅负责提供统一的页面布局结构（Header + Outlet + Footer）
-   - BookDetailPage 组件：负责书籍详情展示和加入购物车交互
-   - CartPage 组件：负责购物车商品的展示、数量修改和删除操作
-   - OrderPage 组件：负责订单确认、收货信息填写和提交
-   - LoginPage 组件：负责用户登录表单的展示和验证
-   - CartContext（context/CartContext.js）：集中管理购物车的全局状态逻辑
+   - Layout 组件（AppLayout）：负责整体页面布局，包含 Ant Design 的 Sider
+     左侧菜单、Header 顶部栏、Content 内容区域和 Footer 页脚
+   - BookCard 组件：负责渲染单本书籍的卡片展示，使用 Ant Design 的 Card、
+     Tag、Rate 组件
+   - BookList 组件：负责书籍列表的网格布局，使用 Ant Design 的 Row、Col
+   - HomePage：首页 Hero 区域 + 书籍列表展示
+   - BookDetailPage：书籍详情展示、加入购物车交互
+   - CartPage：购物车商品列表、数量修改、删除操作
+   - ProfilePage：个人信息展示与编辑
+   - OrderPage：订单确认、收货信息填写
+   - LoginPage：用户登录表单
+   - CartContext：集中管理购物车的全局状态逻辑
 
    这种设计使得每个组件职责明确，易于理解和维护。
 
 
 2. 组件复用原则（Reusability）
 
-   - BookCard 组件设计为纯展示组件，通过 props 接收书籍数据，可以在任何需要展示
-     书籍卡片的地方复用。
-   - Layout 组件封装了页面通用结构（Header、Footer、main 区域），所有页面组件
-     通过 React Router v6 的 <Outlet /> 嵌入到统一布局中，避免了代码重复。
-   - Header 组件中"首页"导航链接使用 NavLink，支持自动添加 active 样式，
-     无需父组件干预。
+   - BookCard 组件设计为纯展示组件，通过 props 接收书籍数据，可以在任何需要
+     展示书籍卡片的地方复用
+   - Layout 组件（AppLayout）封装了通用页面结构（Sider + Header + Content +
+     Footer），所有页面组件通过 React Router v6 的 <Outlet /> 嵌入到统一
+     布局中，避免了代码重复
    - 图片容错逻辑（img onError → emoji fallback）在 BookCard、BookDetailPage、
-     CartPage、OrderPage 中统一复用同一设计模式。
-   - 数量加减控件（quantity-control）在 BookDetailPage 和 CartPage 中复用相同
-     的 UI 结构和交互模式。
+     CartPage、OrderPage 中统一复用同一设计模式
+   - Ant Design 的统一组件库确保所有页面视觉风格一致，降低维护成本
 
 
 3. 组合优于继承原则（Composition over Inheritance）
 
-   - 采用组合模式：BookList 通过 map 函数组合多个 BookCard 组件
-   - Layout 组合模式：使用 React Router v6 的 <Outlet /> 机制，App.js 中通过
-     嵌套路由（<Route> 嵌套）将各页面组件组合到 Layout 内部
-   - CartProvider 组合模式：在 App.js 顶层通过 <CartProvider> 包裹 <Routes>，
-     使所有子组件都可以访问购物车状态
-   - 未使用任何继承关系，所有组件都是函数组件，通过 props 和 composition 实现
-     功能扩展
+   - BookList 通过 map 函数组合多个 BookCard 组件
+   - Layout 使用 React Router v6 的 <Outlet /> 机制，App.js 中通过嵌套路由
+     将各页面组件组合到 AppLayout 内部
+   - CartProvider 在 App.js 顶层通过 <CartProvider> 包裹 <Routes>，使所有
+     子组件都可以访问购物车状态
+   - Ant Design 的 Layout 组件通过组合 Sider、Header、Content、Footer
+     四个子组件构建页面骨架
+   - 未使用任何继承关系，所有组件都是函数组件
 
 
-4. 最小化 props 原则（Minimizing Props）
-
-   - BookCard 仅接收必要的 book 数据作为 props
-   - BookList 接收 books 数组，由其内部负责渲染每个 BookCard
-   - 购物车数据不通过 props 层层传递，而是通过 Context API 提供全局访问，
-     各组件按需调用 useCart() 自行获取所需数据
-   - 组件间数据传输简洁清晰，避免了不必要的 props 传递（prop drilling）
-
-
-5. 状态管理原则
+4. 状态管理原则
 
    a) 组件内部状态（useState）：
-      - BookDetailPage 中的 quantity（购买数量）、imgError（图片加载状态）、
-        added（加入购物车反馈）
-      - LoginPage 中的 username、password、remember、error
-      - OrderPage 中的 form（收货信息对象）、payment（支付方式）、submitted
-      - CartPage 中的 imgErrors（图片加载状态映射）
-      - BookCard 中的 imgError（图片加载状态）
-      所有组件内部状态使用 React 的 useState Hook 管理，不影响其他组件。
+      - BookDetailPage 中的 quantity（购买数量）、imgError（图片加载状态）
+      - ProfilePage 中的 editing（编辑模式）、userInfo（用户信息对象）
+      - LoginPage 使用 Ant Design Form 管理表单状态
+      - OrderPage 中的 payment（支付方式）、submitted（提交状态）
+      - Layout 中的 collapsed（侧边栏折叠状态）
 
    b) 全局共享状态（Context API）：
       - CartContext 通过 createContext + useContext 实现购物车的全局状态管理
       - CartProvider 中使用 useState 管理 cartItems 数组
       - 通过 useCallback 优化 addToCart、removeFromCart、updateQuantity、
-        clearCart 四个操作函数，避免不必要的子组件重渲染
+        clearCart 四个操作函数
       - 派生状态 cartCount、cartTotal、cartOriginalTotal 在 Provider 内部
-        计算，各消费组件直接使用
-
-   c) 受控组件模式（value + onChange）：
-      - BookDetailPage 的数量输入框：value={quantity} + onChange={handleQuantityChange}
-      - LoginPage 的用户名/密码输入框
-      - OrderPage 的收货信息表单（6 个字段统一通过 handleChange 处理）
-      - OrderPage 的支付方式单选按钮
-      - CartPage 的商品数量输入框
+        自动计算
 
 
-三、工程结构的组织
+三、正确使用 React Router 实现页面跳转（2 分）
 --------------------------------------------------------------------------------
 
-项目采用标准的 Create React App 目录结构，并参考样例代码的组织方式：
+1. 路由配置（App.js）
+
+   使用 React Router v6 的 BrowserRouter + Routes + Route 构建路由体系：
+
+   <CartProvider>
+     <Routes>
+       <Route path="/" element={<AppLayout />}>     ← 父路由：统一布局
+         <Route index element={<HomePage />} />      ← 首页 /
+         <Route path="book/:id" element={<BookDetailPage />} />  ← 详情 /book/1
+         <Route path="cart" element={<CartPage />} />            ← 购物车 /cart
+         <Route path="profile" element={<ProfilePage />} />      ← 个人信息 /profile
+         <Route path="login" element={<LoginPage />} />          ← 登录 /login
+         <Route path="order" element={<OrderPage />} />          ← 订单 /order
+       </Route>
+     </Routes>
+   </CartProvider>
+
+2. 跳转方式
+
+   - 左侧菜单导航：Ant Design Menu 的 onClick 事件调用 useNavigate() 实现
+     编程式跳转（首页、购物车、个人信息、登录 四个菜单项）
+   - 声明式导航：BookCard 中使用 <Link to={`/book/${book.id}`}> 跳转到详情页
+   - 编程式导航：BookDetailPage 的"立即购买"按钮使用 navigate('/order')
+     先加入购物车再跳转到订单页
+   - 动态路由参数：使用 useParams() 获取 /book/:id 中的 id 参数
+   - 面包屑导航：BookDetailPage 使用 Ant Design Breadcrumb 展示路径层次
+
+3. 嵌套路由与布局
+
+   - AppLayout 作为父路由的 element，内部通过 <Outlet /> 渲染子路由页面
+   - 所有子页面共享同一个布局（左侧菜单 + 顶部栏 + 页脚）
+   - 左侧 Menu 通过 useLocation() 获取当前路径，自动高亮对应菜单项
+
+
+四、恰当使用 Ant Design 构件开发（2 分）
+--------------------------------------------------------------------------------
+
+1. 整体布局（Layout 组件）
+
+   使用 Ant Design 的 Layout 组件体系构建页面骨架：
+   - Layout.Sider：左侧可折叠侧边栏，包含 Logo 和导航菜单
+   - Layout.Header：顶部栏，包含购物车按钮（Badge 显示数量）和个人中心按钮
+   - Layout.Content：主内容区域，渲染子路由页面
+   - Layout.Footer：页脚版权信息
+   - Menu：左侧导航菜单，包含首页、购物车、个人信息、登录四个菜单项
+   - Badge：购物车图标上显示商品数量
+
+2. 各页面使用的 Ant Design 组件
+
+   a) 首页（HomePage）：
+      - Button：浏览书籍按钮
+      - Typography（Title, Paragraph）：标题和文字排版
+
+   b) BookCard 组件：
+      - Card（hoverable）：书籍卡片，鼠标悬停效果
+      - Card.Meta：卡片标题和描述
+      - Tag：书籍标签（热销、新品、促销）
+      - Rate：评分星级展示
+
+   c) BookList 组件：
+      - Row + Col：响应式网格布局（xs=24, sm=12, md=8, lg=6）
+
+   d) 书籍详情页（BookDetailPage）：
+      - Breadcrumb：面包屑导航（首页 > 分类 > 书名）
+      - Card：内容容器
+      - Rate：评分展示
+      - Tag：库存状态标签
+      - InputNumber：购买数量选择器（min=1, max=99）
+      - Button：加入购物车、立即购买按钮
+      - Descriptions（bordered）：书籍出版信息展示
+      - Result（status=404）：书籍不存在的错误提示
+      - message.success：加入购物车成功提示
+
+   e) 购物车页（CartPage）：
+      - Table：购物车商品列表（columns 定义列配置）
+      - InputNumber：商品数量修改
+      - Button：删除、清空购物车、去结算
+      - Popconfirm：删除和清空操作的二次确认弹窗
+      - Statistic：商品件数和优惠金额统计
+      - Empty：购物车为空时的提示
+
+   f) 个人信息页（ProfilePage）：
+      - Avatar：用户头像
+      - Card：信息卡片容器
+      - Descriptions（bordered）：个人信息只读展示
+      - Form + Form.Item：编辑模式的表单
+      - Input：昵称、邮箱、手机号、地址输入框
+      - Input.TextArea：个人简介输入
+      - Button：编辑资料、保存、取消按钮
+      - Tag：会员等级（黄金会员）、账户状态（正常）
+      - Row + Col：左右双栏布局
+      - message.success：保存成功提示
+
+   g) 登录页（LoginPage）：
+      - Card：登录卡片容器
+      - Form + Form.Item：登录表单（自带验证规则）
+      - Input：用户名输入框（prefix 图标）
+      - Input.Password：密码输入框（自带显示/隐藏切换）
+      - Checkbox：记住我
+      - Button（loading）：登录按钮，带加载状态
+      - message.success：登录成功提示
+
+   h) 订单确认页（OrderPage）：
+      - Form + Form.Item：收货信息表单（带 rules 验证）
+      - Input + TextArea：收货地址信息输入
+      - Card：内容容器
+      - Radio.Group：支付方式选择（支付宝/微信）
+      - Statistic：应付总额展示
+      - Tag：免运费标签
+      - Divider：分隔线
+      - Result（status=success）：下单成功提示页
+      - Empty：购物车为空提示
+
+3. Ant Design 使用的设计理由
+
+   - 统一视觉风格：所有页面使用 Ant Design 的设计语言，颜色、间距、字号
+     保持一致，无需手动编写大量 CSS
+   - theme.useToken()：在 Layout 中使用 Ant Design 的主题 Token 获取
+     背景色和圆角值，确保与主题系统一致
+   - 组件即文档：Ant Design 的组件 API 清晰明确（如 Table 的 columns 配置、
+     Form 的 rules 验证），代码可读性强，易于维护
+   - 交互体验：Popconfirm（二次确认）、message（操作反馈）、Empty（空状态）、
+     Result（结果页）等组件提升了用户体验
+   - 响应式支持：Row + Col 的栅格系统（xs/sm/md/lg 断点）自动适配不同屏幕
+
+
+五、工程结构合理，可维护性强（2 分）
+--------------------------------------------------------------------------------
+
+项目采用标准的 Create React App 目录结构：
 
     bookstore-react/
     ├── public/
-    │   ├── index.html            ← HTML 入口文件
-    │   └── images/               ← 书籍封面图片（静态资源）
+    │   ├── index.html              ← HTML 入口文件
+    │   └── images/                 ← 书籍封面图片（静态资源）
     │       ├── 100-years-of-solitude.jpg
     │       ├── sapiens.jpg
     │       ├── to-live.jpg
@@ -111,177 +224,75 @@
     │       └── kite-runner.jpg
     │
     ├── src/
-    │   ├── components/           ← 可复用 UI 组件目录
-    │   │   ├── Header.js        ← 顶部导航栏组件（含购物车计数）
-    │   │   ├── Footer.js        ← 页脚组件
-    │   │   ├── Layout.js        ← 页面布局组件（Header + Outlet + Footer）
-    │   │   ├── BookCard.js      ← 书籍卡片组件（含图片容错）
-    │   │   └── BookList.js      ← 书籍列表网格组件
+    │   ├── components/             ← 可复用 UI 组件目录
+    │   │   ├── Layout.js          ← 页面布局（Ant Design Sider+Header+Content+Footer）
+    │   │   ├── BookCard.js        ← 书籍卡片（Ant Design Card+Tag+Rate）
+    │   │   └── BookList.js        ← 书籍列表网格（Ant Design Row+Col）
     │   │
-    │   ├── pages/               ← 页面级组件目录
-    │   │   ├── HomePage.js      ← 首页（Hero + 书籍列表）
-    │   │   ├── BookDetailPage.js ← 书籍详情页（含加入购物车功能）
-    │   │   ├── CartPage.js      ← 购物车页（商品列表/数量/删除/合计）
-    │   │   ├── LoginPage.js     ← 登录页（受控表单 + 验证）
-    │   │   └── OrderPage.js     ← 订单确认页（收货信息/商品清单/支付）
+    │   ├── pages/                  ← 页面级组件目录
+    │   │   ├── HomePage.js        ← 首页（Hero + 书籍列表）
+    │   │   ├── BookDetailPage.js  ← 书籍详情页（Breadcrumb+Card+Descriptions）
+    │   │   ├── CartPage.js        ← 购物车页（Table+InputNumber+Popconfirm）
+    │   │   ├── ProfilePage.js     ← 个人信息页（Avatar+Descriptions+Form）
+    │   │   ├── LoginPage.js       ← 登录页（Form+Input+Checkbox）
+    │   │   └── OrderPage.js       ← 订单确认页（Form+Radio+Statistic）
     │   │
-    │   ├── context/             ← 全局状态管理目录
-    │   │   └── CartContext.js   ← 购物车 Context（Provider + useCart Hook）
+    │   ├── context/                ← 全局状态管理目录
+    │   │   └── CartContext.js     ← 购物车 Context（Provider + useCart Hook）
     │   │
-    │   ├── Data.js              ← 书籍数据文件（含 getBookById 辅助函数）
-    │   ├── App.js               ← 根组件（CartProvider + 路由配置）
-    │   ├── index.js             ← 应用入口（BrowserRouter 挂载）
-    │   ├── index.css            ← 样式入口（引入 styles.css）
-    │   └── styles.css           ← 全局样式文件（CSS 变量 + 响应式布局）
+    │   ├── Data.js                 ← 书籍数据文件（8 本书 + getBookById）
+    │   ├── App.js                  ← 根组件（CartProvider + 路由配置）
+    │   ├── index.js                ← 应用入口（BrowserRouter 挂载）
+    │   ├── index.css               ← 样式入口
+    │   └── styles.css              ← 少量全局样式补充
     │
-    └── package.json             ← 项目依赖配置
+    └── package.json                ← 项目依赖（react, react-router-dom, antd）
 
 结构设计理由：
 
 1. components/ 与 pages/ 分离
-   - components/ 存放可复用的纯 UI 组件，不涉及路由逻辑，可跨页面复用
-   - pages/ 存放页面级组件，与 URL 路径一一对应（/、/book/:id、/cart、
-     /login、/order）
-   - 这种分离使得组件职责清晰，便于团队协作和代码维护
+   - components/ 存放可复用的 UI 组件（3 个），不涉及路由逻辑
+   - pages/ 存放页面级组件（6 个），与 URL 路径一一对应
+   - 职责清晰，便于团队协作
 
 2. context/ 独立管理全局状态
-   - CartContext.js 将购物车状态逻辑从页面组件中抽离，集中管理
+   - CartContext.js 将购物车状态逻辑从页面组件中抽离
    - 通过自定义 Hook（useCart）提供类型安全的访问方式
-   - 遵循 React 社区的 Context 模块化最佳实践
+   - 可扩展：未来可添加 AuthContext、ThemeContext 等
 
-3. 数据文件独立
-   - Data.js 集中管理所有书籍数据（8 本书），模拟后端 API 返回的数据结构
-   - 每本书包含完整信息：id、标题、作者、分类、价格、评分、描述、简介、
-     作者简介、出版信息、封面图路径、占位 emoji
-   - 提供 getBookById 辅助函数，方便通过 id 获取单本书籍信息
-   - 类似样例 se2321_08_react_bookbrowser 中的 Data.js 设计
+3. 数据文件独立（Data.js）
+   - 集中管理所有书籍数据，模拟后端 API 返回的数据结构
+   - 提供 getBookById 辅助函数
+   - 未来对接后端时，只需替换数据获取方式，页面组件无需修改
 
-4. 路由配置集中管理
-   - App.js 中集中配置所有路由映射关系
-   - 使用 React Router v6 的 Routes/Route 组件 + 嵌套路由
-   - Layout 作为父路由的 element，子路由通过 <Outlet /> 渲染
-   - 动态路由参数（/book/:id）实现页面间数据传递
+4. 样式管理简洁
+   - 绝大多数样式由 Ant Design 组件自带处理
+   - styles.css 仅包含极少量全局补充样式
+   - 各组件内通过 style 属性微调，避免 CSS 冲突
 
-5. 静态资源放在 public/ 目录
-   - 书籍封面图片放在 public/images/ 下，CRA 开发服务器可直接访问
-   - Data.js 中以相对路径 "images/xxx.jpg" 引用，运行时自动映射到 public/
+5. 可扩展性
+   - 添加新页面：在 pages/ 创建文件 + App.js 添加 <Route> + Layout Menu 添加菜单项
+   - 添加新组件：在 components/ 创建文件，在需要的地方引用
+   - 扩展书籍数据：修改 Data.js 即可
+   - 对接后端：数据层集中在 Data.js，替换为 fetch/axios 调用即可
 
 
-四、关键技术实现
+六、总结
 --------------------------------------------------------------------------------
 
-1. 路由跳转与数据传递
+本项目严格遵循了迭代 1 的所有要求：
 
-   - 使用 React Router v6 的 BrowserRouter + Routes + Route 构建路由体系
-   - useParams Hook 获取 URL 中的动态参数（如 /book/:id 中的 id）
-   - useNavigate Hook 实现编程式导航（如"立即购买"先加入购物车再跳转订单页）
-   - Link 组件实现声明式导航，避免使用传统的 <a> 标签
-   - NavLink 组件实现导航栏的 active 样式自动切换
-   - 嵌套路由：Layout 作为父路由 element，通过 <Outlet /> 渲染子路由页面
-   - URL 参数设计：/book/:id，例如 /book/4 对应"三体（全集）"书籍详情
-
-2. 全局状态管理（购物车）
-
-   - 使用 React Context API（createContext + useContext）实现跨组件状态共享
-   - CartProvider 包裹在 App.js 的 <Routes> 外层，所有路由页面均可访问
-   - 提供四个操作方法：addToCart（添加）、removeFromCart（删除）、
-     updateQuantity（修改数量）、clearCart（清空）
-   - 派生状态自动计算：cartCount（总数量）、cartTotal（总价）、
-     cartOriginalTotal（原价总计）
-   - 自定义 useCart Hook 封装 useContext 调用，并提供使用错误检测
-
-3. 受控组件与表单管理
-
-   - BookDetailPage：数量输入框通过 value + onChange 受控，支持加减按钮
-     和直接输入，范围限制 1~99
-   - LoginPage：用户名、密码、记住我三个字段均为受控状态，提交时验证
-     非空并给出错误提示
-   - OrderPage：收货信息 6 个字段统一存储在 form 对象中，通过
-     handleChange 函数统一处理变更；支付方式通过 radio 受控切换
-
-4. 图片容错处理
-
-   - 所有书籍图片均使用 <img onError> 事件监听加载失败
-   - 加载失败时通过 useState 切换到 emoji 占位符显示
-   - 此模式在 BookCard、BookDetailPage、CartPage、OrderPage 中统一使用
-
-5. 用户交互反馈
-
-   - "加入购物车"按钮点击后显示"✓ 已加入"文字反馈，1.5 秒后恢复
-   - Header 导航栏实时显示购物车商品数量
-   - 购物车为空时显示友好的空状态提示
-   - 订单提交成功后显示"下单成功"提示页面
-
-6. 错误处理
-
-   - BookDetailPage 中对无效书籍 ID 进行处理，显示友好的"书籍不存在"
-     提示，并提供返回首页的链接
-   - OrderPage 在购物车为空时显示引导提示
-   - LoginPage 在表单为空时显示错误提示信息
-   - useCart Hook 在 Provider 外使用时抛出明确的错误信息
-
-
-五、与样例代码的对比
---------------------------------------------------------------------------------
-
-参考样例 se2321_10_reactrouter：
-- 借鉴了其目录结构组织方式，将路由相关组件集中管理
-- 学习了其嵌套路由配置方式：父 Route 的 element 作为 Layout，子 Route
-  通过 <Outlet /> 渲染
-- 本项目使用 BrowserRouter + Routes/Route 的声明式配置（样例使用
-  createBrowserRouter），两者都是 React Router v6 的推荐方式
-
-参考样例 se2321_08_react_bookbrowser：
-- 借鉴了 Data.js 集中管理数据的模式，并扩展了数据字段（增加了 intro、
-  authorBio、info 对象、coverEmoji 等）
-- 学习了两个主页面（列表+详情）的设计思路，并扩展到五个完整页面
-- 采用了类似的组件拆分方式，将列表渲染和卡片渲染分离为独立组件
-
-与样例代码的不同之处：
-- 增加了 Context API 进行全局购物车状态管理（样例未涉及）
-- 增加了完整的购物车、订单确认、登录三个功能页面
-- 所有表单均使用受控组件模式
-- 增加了图片容错处理（onError + emoji fallback）
-- 增加了响应式布局支持（CSS Media Queries）
-
-
-六、可维护性与可扩展性
---------------------------------------------------------------------------------
-
-1. 可维护性
-   - 组件职责单一：components/ 下的 UI 组件不超过 40 行，pages/ 下的页面
-     组件不超过 200 行
-   - 组件命名清晰：遵循 PascalCase 命名规范，文件名与组件名一致
-   - 样式与逻辑分离：全局样式统一在 styles.css 中维护，使用 CSS 变量
-     管理主题色彩
-   - 状态管理清晰：局部状态用 useState，全局状态用 Context，层次分明
-
-2. 可扩展性
-   - 添加新页面：只需在 pages/ 创建新文件，并在 App.js 添加 <Route> 即可
-   - 添加新组件：只需在 components/ 创建文件，在需要的地方引用
-   - 扩展书籍数据：只需修改 Data.js，添加新的书籍对象
-   - 扩展全局状态：可在 context/ 目录中添加新的 Context（如 AuthContext、
-     ThemeContext），按同样模式提供 Provider 和自定义 Hook
-   - 对接后端 API：当前数据层在 Data.js 集中管理，未来只需将数据获取逻辑
-     替换为 fetch/axios 调用即可，页面组件无需修改
-
-
-七、总结
---------------------------------------------------------------------------------
-
-本次重构严格遵循了 React 构件式开发的核心原则：
-1. 函数式组件 + Hooks（useState、useParams、useNavigate、useContext、
-   useCallback）替代类组件
-2. 单一职责，每个组件功能明确（10 个组件 + 1 个 Context 模块）
-3. 组件复用，通过 Props 传递数据，通过 Context 共享全局状态
-4. 组合优于继承，使用 <Outlet /> 嵌套路由 + <CartProvider> 包裹实现组合
-5. 受控组件模式管理所有表单输入
-6. 完善的用户体验：图片容错、操作反馈、空状态提示、错误处理
-
-工程结构参考了课程提供的两个样例代码，吸收了它们的优点，并在此基础上进行了
-功能扩展（购物车全局状态管理、完整的购物流程、受控表单、图片容错等），形成了
-一套适合小型 Web 应用开发的工程组织方案。该方案具有良好的可维护性和可扩展性，
-可以作为后续迭代开发的基础。
+1. 技术栈：React + React Router + Ant Design（三者均已使用）
+2. 四个核心页面：首页、书籍详情页、购物车页、个人信息页
+3. 左侧菜单导航：使用 Ant Design 的 Layout.Sider + Menu 实现
+4. 组件化开发：11 个组件（3 个可复用组件 + 6 个页面组件 + 1 个布局组件 +
+   1 个 Context 模块），职责单一、复用合理
+5. Ant Design 深度使用：Layout、Menu、Card、Table、Form、Button、Input、
+   Rate、Tag、Badge、Breadcrumb、Descriptions、Avatar、InputNumber、
+   Radio、Statistic、Popconfirm、message、Result、Empty 等 20+ 组件
+6. 数据集中管理：Data.js 中硬编码 8 本书籍数据
+7. 全局状态管理：CartContext 实现购物车跨页面共享
+8. 图片容错处理：所有书籍封面支持 img onError → emoji fallback
 
 
 ================================================================================

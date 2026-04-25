@@ -28,6 +28,11 @@ function OrderPage() {
   const { cartItems, cartTotal, cartOriginalTotal, clearCart } = useCart();
   const [submitted, setSubmitted] = useState(false);
   const [payment, setPayment] = useState('alipay');
+  const [imgErrors, setImgErrors] = useState({});
+
+  const handleImgError = (id) => {
+    setImgErrors(prev => ({ ...prev, [id]: true }));
+  };
 
   const shipping = cartTotal >= 99 ? 0 : 10;
   const totalWithShipping = cartTotal + shipping;
@@ -149,9 +154,19 @@ function OrderPage() {
                       justifyContent: 'center',
                       fontSize: 24,
                       flexShrink: 0,
+                      overflow: 'hidden',
                     }}
                   >
-                    {item.coverEmoji}
+                    {imgErrors[item.id] ? (
+                      <span>{item.coverEmoji}</span>
+                    ) : (
+                      <img
+                        src={item.coverImg}
+                        alt={item.title}
+                        onError={() => handleImgError(item.id)}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <Text strong>{item.title}</Text>

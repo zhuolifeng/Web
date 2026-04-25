@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Tag, Rate } from 'antd';
 
 const { Meta } = Card;
 
 function BookCard({ book }) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <Link to={`/book/${book.id}`} style={{ textDecoration: 'none' }}>
       <Card
@@ -28,7 +31,16 @@ function BookCard({ book }) {
                 {book.badge}
               </Tag>
             )}
-            <span style={{ fontSize: 64 }}>{book.coverEmoji}</span>
+            {imgError ? (
+              <span style={{ fontSize: 64 }}>{book.coverEmoji}</span>
+            ) : (
+              <img
+                src={book.coverImg}
+                alt={`${book.title}封面`}
+                onError={() => setImgError(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
           </div>
         }
         style={{ borderRadius: 12 }}
