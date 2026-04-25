@@ -1,7 +1,28 @@
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import {
+  Button,
+  InputNumber,
+  Breadcrumb,
+  Rate,
+  Tag,
+  Descriptions,
+  Typography,
+  Card,
+  Space,
+  message,
+  Result,
+} from 'antd';
+import {
+  ShoppingCartOutlined,
+  ThunderboltOutlined,
+  CheckCircleOutlined,
+  HomeOutlined,
+} from '@ant-design/icons';
 import { getBookById } from '../Data';
 import { useCart } from '../context/CartContext';
+
+const { Title, Paragraph, Text } = Typography;
 
 function BookDetailPage() {
   const { id } = useParams();
@@ -9,39 +30,25 @@ function BookDetailPage() {
   const book = getBookById(id);
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
-  const [imgError, setImgError] = useState(false);
-  const [added, setAdded] = useState(false);
 
   if (!book) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '100px 0' }}>
-        <h2>书籍不存在</h2>
-        <Link to="/" className="btn btn-primary">返回首页</Link>
-      </div>
+      <Result
+        status="404"
+        title="书籍不存在"
+        subTitle="抱歉，您查找的书籍不存在"
+        extra={
+          <Link to="/">
+            <Button type="primary">返回首页</Button>
+          </Link>
+        }
+      />
     );
   }
 
-  const decreaseQuantity = () => {
-    if (quantity > 1) setQuantity(quantity - 1);
-  };
-
-  const increaseQuantity = () => {
-    if (quantity < 99) setQuantity(quantity + 1);
-  };
-
-  const handleQuantityChange = (e) => {
-    const val = parseInt(e.target.value, 10);
-    if (!isNaN(val) && val >= 1 && val <= 99) {
-      setQuantity(val);
-    } else if (e.target.value === '') {
-      setQuantity(1);
-    }
-  };
-
   const handleAddToCart = () => {
     addToCart(book.id, quantity);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    message.success('已加入购物车');
   };
 
   const handleBuyNow = () => {
@@ -51,110 +58,110 @@ function BookDetailPage() {
 
   return (
     <>
-      <nav className="breadcrumb" aria-label="面包屑导航">
-        <ol className="breadcrumb-list">
-          <li className="breadcrumb-item">
-            <Link to="/" className="breadcrumb-link">首页</Link>
-            <span className="breadcrumb-sep">/</span>
-          </li>
-          <li className="breadcrumb-item">
-            <span className="breadcrumb-link">{book.category}</span>
-            <span className="breadcrumb-sep">/</span>
-          </li>
-          <li className="breadcrumb-item">
-            <span className="breadcrumb-current">{book.title}</span>
-          </li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        style={{ marginBottom: 24 }}
+        items={[
+          { title: <Link to="/"><HomeOutlined /> 首页</Link> },
+          { title: book.category },
+          { title: book.title },
+        ]}
+      />
 
-      <div className="detail-wrapper">
-        <figure className="detail-cover">
-          {imgError ? (
-            <span className="detail-cover-ph">{book.coverEmoji}</span>
-          ) : (
-            <img
-              src={book.coverImg}
-              alt={`${book.title}封面`}
-              className="detail-cover-img"
-              onError={() => setImgError(true)}
-            />
-          )}
-        </figure>
-
-        <div className="detail-info">
-          <h1 className="detail-title">{book.title}</h1>
-          <p className="detail-author">{book.author}</p>
-
-          <div className="detail-rating">
-            <span className="detail-stars">{book.stars}</span>
-            <span className="detail-price-num">{book.ratingNum}</span>
-            <span className="rating-count">{book.ratingCount}</span>
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 40 }}>
+          {/* Cover */}
+          <div
+            style={{
+              height: 400,
+              background: 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 120,
+            }}
+          >
+            {book.coverEmoji}
           </div>
 
-          <p className="detail-description">{book.description}</p>
+          {/* Info */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <Title level={2} style={{ marginBottom: 8 }}>{book.title}</Title>
+            <Text type="secondary" style={{ fontSize: 16, marginBottom: 16 }}>{book.author}</Text>
 
-          <div className="detail-price-box">
-            <div className="detail-price">{book.price}</div>
-            <div className="detail-original-price">原价 {book.originalPrice}</div>
-            <div className="detail-stock">✓ 库存充足</div>
-          </div>
-
-          <div className="detail-actions">
-            <div className="quantity-control">
-              <button
-                className="quantity-btn"
-                onClick={decreaseQuantity}
-                aria-label="减少数量"
-              >−</button>
-              <input
-                type="number"
-                className="quantity-input"
-                value={quantity}
-                onChange={handleQuantityChange}
-                min="1"
-                max="99"
-                aria-label="购买数量"
-              />
-              <button
-                className="quantity-btn"
-                onClick={increaseQuantity}
-                aria-label="增加数量"
-              >+</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <Rate disabled defaultValue={parseFloat(book.ratingNum)} allowHalf />
+              <Text strong style={{ color: '#faad14' }}>{book.ratingNum}</Text>
+              <Text type="secondary">{book.ratingCount}</Text>
             </div>
-            <button className="btn btn-primary btn-lg" onClick={handleAddToCart}>
-              {added ? '✓ 已加入' : '加入购物车'}
-            </button>
-            <button className="btn btn-secondary btn-lg" onClick={handleBuyNow}>
-              立即购买
-            </button>
+
+            <Paragraph type="secondary" style={{ lineHeight: 1.8 }}>{book.description}</Paragraph>
+
+            <div
+              style={{
+                background: '#f8f9fa',
+                borderRadius: 8,
+                padding: 20,
+                marginBottom: 24,
+              }}
+            >
+              <Text style={{ fontSize: 32, fontWeight: 700, color: '#f03e3e' }}>
+                {book.price}
+              </Text>
+              <br />
+              <Text delete type="secondary" style={{ fontSize: 16 }}>
+                原价 {book.originalPrice}
+              </Text>
+              <br />
+              <Tag color="green" style={{ marginTop: 8 }}>
+                <CheckCircleOutlined /> 库存充足
+              </Tag>
+            </div>
+
+            <Space size="middle" style={{ marginTop: 'auto' }}>
+              <InputNumber
+                min={1}
+                max={99}
+                value={quantity}
+                onChange={(val) => val && setQuantity(val)}
+                style={{ width: 100 }}
+                size="large"
+              />
+              <Button
+                type="primary"
+                size="large"
+                icon={<ShoppingCartOutlined />}
+                onClick={handleAddToCart}
+              >
+                加入购物车
+              </Button>
+              <Button
+                size="large"
+                icon={<ThunderboltOutlined />}
+                onClick={handleBuyNow}
+              >
+                立即购买
+              </Button>
+            </Space>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <section className="book-detail-section">
-        <div className="section-header">
-          <h2 className="section-title">书籍详情</h2>
-        </div>
-        <div className="card book-detail-card">
-          <article>
-            <h3 className="book-detail-subtitle">内容简介</h3>
-            <p className="book-detail-text">{book.intro}</p>
+      {/* Book Details */}
+      <Card title="书籍详情">
+        <Title level={4}>内容简介</Title>
+        <Paragraph style={{ lineHeight: 1.8 }}>{book.intro}</Paragraph>
 
-            <h3 className="book-detail-subtitle">作者简介</h3>
-            <p className="book-detail-text">{book.authorBio}</p>
+        <Title level={4}>作者简介</Title>
+        <Paragraph style={{ lineHeight: 1.8 }}>{book.authorBio}</Paragraph>
 
-            <h3 className="book-detail-subtitle">书籍信息</h3>
-            <dl className="book-detail-info">
-              {Object.entries(book.info).map(([key, value]) => (
-                <div key={key} className="info-item">
-                  <dt>{key}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </article>
-        </div>
-      </section>
+        <Title level={4}>书籍信息</Title>
+        <Descriptions bordered column={2}>
+          {Object.entries(book.info).map(([key, value]) => (
+            <Descriptions.Item key={key} label={key}>{value}</Descriptions.Item>
+          ))}
+        </Descriptions>
+      </Card>
     </>
   );
 }

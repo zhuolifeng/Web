@@ -1,35 +1,58 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Card, Tag, Rate } from 'antd';
+
+const { Meta } = Card;
 
 function BookCard({ book }) {
-  const [imgError, setImgError] = useState(false);
-
   return (
-    <article className="book-card">
-      <Link to={`/book/${book.id}`} className="book-card-link">
-        <figure className="book-cover">
-          {book.badge && <span className="book-badge">{book.badge}</span>}
-          {imgError ? (
-            <span className="book-cover-ph">{book.coverEmoji}</span>
-          ) : (
-            <img
-              className="book-cover-img"
-              src={book.coverImg}
-              alt={`${book.title}封面`}
-              onError={() => setImgError(true)}
-            />
-          )}
-        </figure>
-        <div className="book-info">
-          <h3 className="book-title">{book.title}</h3>
-          <p className="book-author">{book.author}</p>
-          <div className="book-meta">
-            <span className="book-price">{book.price}</span>
-            <span className="book-rating">{book.stars} {book.ratingNum}</span>
+    <Link to={`/book/${book.id}`} style={{ textDecoration: 'none' }}>
+      <Card
+        hoverable
+        cover={
+          <div
+            style={{
+              height: 220,
+              background: 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {book.badge && (
+              <Tag
+                color="gold"
+                style={{ position: 'absolute', top: 12, left: 12, zIndex: 1 }}
+              >
+                {book.badge}
+              </Tag>
+            )}
+            <span style={{ fontSize: 64 }}>{book.coverEmoji}</span>
           </div>
+        }
+        style={{ borderRadius: 12 }}
+        bodyStyle={{ padding: 16 }}
+      >
+        <Meta
+          title={<span style={{ fontSize: 15, fontWeight: 600 }}>{book.title}</span>}
+          description={book.author}
+        />
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 12,
+          }}
+        >
+          <span style={{ fontSize: 20, fontWeight: 700, color: '#f03e3e' }}>
+            {book.price}
+          </span>
+          <Rate disabled defaultValue={parseFloat(book.ratingNum)} allowHalf style={{ fontSize: 14 }} />
         </div>
-      </Link>
-    </article>
+      </Card>
+    </Link>
   );
 }
 

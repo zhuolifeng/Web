@@ -1,6 +1,23 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Table,
+  Button,
+  InputNumber,
+  Typography,
+  Card,
+  Space,
+  Statistic,
+  Empty,
+  Popconfirm,
+} from 'antd';
+import {
+  DeleteOutlined,
+  ShoppingCartOutlined,
+  ClearOutlined,
+} from '@ant-design/icons';
 import { useCart } from '../context/CartContext';
+
+const { Title, Text } = Typography;
 
 function CartPage() {
   const {
@@ -12,129 +29,163 @@ function CartPage() {
     cartOriginalTotal,
   } = useCart();
 
-  const [imgErrors, setImgErrors] = useState({});
-
-  const handleImgError = (id) => {
-    setImgErrors(prev => ({ ...prev, [id]: true }));
-  };
-
   if (cartItems.length === 0) {
     return (
-      <div className="empty-state">
-        <div className="empty-icon">🛒</div>
-        <h2 className="empty-title">购物车空空如也</h2>
-        <p className="empty-text">快去挑选你喜欢的书籍吧！</p>
-        <Link to="/" className="btn btn-primary">去逛逛</Link>
+      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="购物车空空如也"
+        >
+          <Link to="/">
+            <Button type="primary" icon={<ShoppingCartOutlined />}>去逛逛</Button>
+          </Link>
+        </Empty>
       </div>
     );
   }
 
   const discount = cartOriginalTotal - cartTotal;
 
-  return (
-    <div className="cart-page">
-      <div className="cart-header">
-        <h1 className="cart-title">🛒 购物车（{cartItems.length} 件商品）</h1>
-      </div>
-
-      <table className="cart-table">
-        <thead>
-          <tr>
-            <th className="cart-col-product">商品信息</th>
-            <th className="cart-col-price">单价</th>
-            <th className="cart-col-qty">数量</th>
-            <th className="cart-col-subtotal">小计</th>
-            <th className="cart-col-action">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cartItems.map(item => {
-            const unitPrice = parseFloat(item.price.replace('¥', ''));
-            const subtotal = (unitPrice * item.quantity).toFixed(2);
-
-            return (
-              <tr key={item.id}>
-                <td>
-                  <div className="cart-product">
-                    <div className="cart-product-cover">
-                      {imgErrors[item.id] ? (
-                        <span>{item.coverEmoji}</span>
-                      ) : (
-                        <img
-                          src={item.coverImg}
-                          alt={item.title}
-                          onError={() => handleImgError(item.id)}
-                        />
-                      )}
-                    </div>
-                    <div className="cart-product-info">
-                      <h4><Link to={`/book/${item.id}`}>{item.title}</Link></h4>
-                      <p>{item.author}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="cart-price">{item.price}</td>
-                <td>
-                  <div className="quantity-control">
-                    <button
-                      className="quantity-btn"
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
-                      aria-label="减少数量"
-                    >−</button>
-                    <input
-                      type="number"
-                      className="quantity-input"
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        if (!isNaN(val) && val >= 1 && val <= 99) {
-                          updateQuantity(item.id, val);
-                        }
-                      }}
-                      min="1"
-                      max="99"
-                      aria-label="购买数量"
-                    />
-                    <button
-                      className="quantity-btn"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      disabled={item.quantity >= 99}
-                      aria-label="增加数量"
-                    >+</button>
-                  </div>
-                </td>
-                <td className="cart-subtotal">¥{subtotal}</td>
-                <td>
-                  <button
-                    className="cart-remove-btn"
-                    onClick={() => removeFromCart(item.id)}
-                    aria-label={`删除${item.title}`}
-                  >✕ 删除</button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <div className="cart-summary">
-        <div className="cart-summary-info">
-          <h4>共 {cartItems.reduce((s, i) => s + i.quantity, 0)} 件商品</h4>
-          {discount > 0 && (
-            <p className="cart-shipping-note">已优惠 ¥{discount.toFixed(2)}</p>
-          )}
-        </div>
-        <div className="cart-summary-actions">
-          <button className="btn btn-secondary" onClick={clearCart}>清空购物车</button>
+  const columns = [
+    {
+      title: '商品信息',
+      dataIndex: 'title',
+      key: 'title',
+      render: (_, record) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div
+            style={{
+              width: 60,
+              height: 80,
+              background: 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 28,
+              flexShrink: 0,
+            }}
+          >
+            {record.coverEmoji}
+          </div>
           <div>
-            <span className="cart-summary-total">合计：¥{cartTotal.toFixed(2)}</span>
-            {' '}
-            <Link to="/order" className="btn btn-primary btn-lg">去结算</Link>
+            <Link to={`/book/${record.id}`}>
+              <Text strong>{record.title}</Text>
+            </Link>
+            <br />
+            <Text type="secondary" style={{ fontSize: 13 }}>{record.author}</Text>
           </div>
         </div>
-      </div>
-    </div>
+      ),
+    },
+    {
+      title: '单价',
+      dataIndex: 'price',
+      key: 'price',
+      width: 120,
+      render: (price) => <Text strong style={{ color: '#f03e3e' }}>{price}</Text>,
+    },
+    {
+      title: '数量',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 150,
+      render: (qty, record) => (
+        <InputNumber
+          min={1}
+          max={99}
+          value={qty}
+          onChange={(val) => val && updateQuantity(record.id, val)}
+        />
+      ),
+    },
+    {
+      title: '小计',
+      key: 'subtotal',
+      width: 120,
+      render: (_, record) => {
+        const unitPrice = parseFloat(record.price.replace('¥', ''));
+        return (
+          <Text strong>¥{(unitPrice * record.quantity).toFixed(2)}</Text>
+        );
+      },
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 100,
+      render: (_, record) => (
+        <Popconfirm
+          title="确定删除该商品？"
+          onConfirm={() => removeFromCart(record.id)}
+          okText="确定"
+          cancelText="取消"
+        >
+          <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <Title level={3} style={{ marginBottom: 24 }}>
+        <ShoppingCartOutlined /> 购物车（{cartItems.length} 件商品）
+      </Title>
+
+      <Card bodyStyle={{ padding: 0 }}>
+        <Table
+          dataSource={cartItems}
+          columns={columns}
+          rowKey="id"
+          pagination={false}
+        />
+      </Card>
+
+      <Card style={{ marginTop: 24 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Space size="large">
+            <Statistic
+              title="商品件数"
+              value={cartItems.reduce((s, i) => s + i.quantity, 0)}
+              suffix="件"
+            />
+            {discount > 0 && (
+              <Statistic
+                title="已优惠"
+                value={discount}
+                precision={2}
+                prefix="¥"
+                valueStyle={{ color: '#37b24d' }}
+              />
+            )}
+          </Space>
+
+          <Space size="middle">
+            <Popconfirm
+              title="确定清空购物车？"
+              onConfirm={clearCart}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button icon={<ClearOutlined />}>清空购物车</Button>
+            </Popconfirm>
+            <Text style={{ fontSize: 24, fontWeight: 700, color: '#f03e3e' }}>
+              合计：¥{cartTotal.toFixed(2)}
+            </Text>
+            <Link to="/order">
+              <Button type="primary" size="large">去结算</Button>
+            </Link>
+          </Space>
+        </div>
+      </Card>
+    </>
   );
 }
 
