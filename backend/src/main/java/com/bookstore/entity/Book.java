@@ -6,17 +6,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "books")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Book {
 
     @Id
@@ -79,4 +71,66 @@ public class Book {
 
     @Column(name = "cover_emoji", length = 16)
     private String coverEmoji;
+
+    public Book() {}
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getAuthor() { return author; }
+    public void setAuthor(String author) { this.author = author; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public String getBadge() { return badge; }
+    public void setBadge(String badge) { this.badge = badge; }
+
+    public String getStars() { return stars; }
+    public void setStars(String stars) { this.stars = stars; }
+
+    public String getRatingNum() { return ratingNum; }
+    public void setRatingNum(String ratingNum) { this.ratingNum = ratingNum; }
+
+    public String getRatingCount() { return ratingCount; }
+    public void setRatingCount(String ratingCount) { this.ratingCount = ratingCount; }
+
+    public String getPrice() { return price; }
+    public void setPrice(String price) { this.price = price; }
+
+    public String getOriginalPrice() { return originalPrice; }
+    public void setOriginalPrice(String originalPrice) { this.originalPrice = originalPrice; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getIntro() { return intro; }
+    public void setIntro(String intro) { this.intro = intro; }
+
+    public String getAuthorBio() { return authorBio; }
+    public void setAuthorBio(String authorBio) { this.authorBio = authorBio; }
+
+    public String getPublisher() { return publisher; }
+    public void setPublisher(String publisher) { this.publisher = publisher; }
+
+    public String getPublishDate() { return publishDate; }
+    public void setPublishDate(String publishDate) { this.publishDate = publishDate; }
+
+    public String getPages() { return pages; }
+    public void setPages(String pages) { this.pages = pages; }
+
+    public String getIsbn() { return isbn; }
+    public void setIsbn(String isbn) { this.isbn = isbn; }
+
+    public String getBinding() { return binding; }
+    public void setBinding(String binding) { this.binding = binding; }
+
+    public String getCoverImg() { return coverImg; }
+    public void setCoverImg(String coverImg) { this.coverImg = coverImg; }
+
+    public String getCoverEmoji() { return coverEmoji; }
+    public void setCoverEmoji(String coverEmoji) { this.coverEmoji = coverEmoji; }
 }

@@ -29,14 +29,13 @@ public class UserService {
             throw new BusinessException(409, "邮箱已被注册");
         }
 
-        User user = User.builder()
-                .username(request.getUsername())
-                .password(request.getPassword())
-                .email(request.getEmail())
-                .phone(request.getPhone())
-                .nickname(request.getNickname())
-                .createdAt(LocalDateTime.now())
-                .build();
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setPassword(request.getPassword());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setNickname(request.getNickname());
+        user.setCreatedAt(LocalDateTime.now());
 
         return userRepository.save(user);
     }
