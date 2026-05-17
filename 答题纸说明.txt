@@ -1,0 +1,249 @@
+================================================================
+  互联网应用开发技术 - 作业 4 / 迭代 2
+  项目结构与 Postman 测试结果说明
+================================================================
+
+【建议把本文件的内容粘贴进“00-课程概述”单元中的“作业答题纸.docx”，
+  对应位置插入下面列出的 7 张截图即可。】
+
+
+================================================================
+一、提交目录结构（解压后的根目录）
+================================================================
+
+学号-作业1.rar
+└── 学号-作业1/
+    ├── frontend/                ← 前端工程（React 单页应用）
+    │   ├── public/
+    │   │   ├── index.html
+    │   │   └── images/          ← 书籍封面图
+    │   ├── src/
+    │   │   ├── components/      ← BookCard / BookList / Layout
+    │   │   ├── context/         ← CartContext.js（购物车状态）
+    │   │   ├── pages/           ← Home / BookDetail / Cart / Login / Order / Profile
+    │   │   ├── Data.js          ← 8 本书的样例数据（与后端 data.sql 一致）
+    │   │   ├── App.js           ← React Router 路由根
+    │   │   ├── index.js         ← 入口
+    │   │   └── index.css
+    │   ├── package.json
+    │   └── README.md
+    │
+    ├── backend/                 ← 后端工程（Spring Boot 3.2.5）
+    │   ├── pom.xml              ← Maven 依赖：Web、Data JPA、MySQL、Validation、Lombok
+    │   ├── README.md            ← 启动步骤 + Postman 用例
+    │   └── src/main/
+    │       ├── java/com/bookstore/
+    │       │   ├── BookstoreApplication.java   ← @SpringBootApplication 启动类
+    │       │   ├── config/
+    │       │   │   └── WebConfig.java          ← CORS（前后端联调）
+    │       │   ├── controller/                 ← 表现层（@RestController）
+    │       │   │   ├── UserController.java     ← POST /api/v1/users/register
+    │       │   │   └── BookController.java     ← GET  /api/v1/books, /api/v1/book/{id}
+    │       │   ├── service/                    ← 业务层（@Service / @Transactional）
+    │       │   │   ├── UserService.java
+    │       │   │   └── BookService.java
+    │       │   ├── repository/                 ← 数据访问层（Spring Data JPA）
+    │       │   │   ├── UserRepository.java     ← extends JpaRepository<User, Long>
+    │       │   │   └── BookRepository.java     ← extends JpaRepository<Book, Long>
+    │       │   ├── entity/                     ← 实体类（@Entity + @Table）
+    │       │   │   ├── User.java               ← users 表
+    │       │   │   └── Book.java               ← books 表
+    │       │   ├── dto/                        ← 数据传输对象
+    │       │   │   ├── UserRegisterRequest.java（注册入参 + 校验）
+    │       │   │   └── ApiResponse.java        ← 统一响应包装 {code,message,data}
+    │       │   └── exception/                  ← 全局异常处理
+    │       │       ├── BusinessException.java
+    │       │       └── GlobalExceptionHandler.java
+    │       └── resources/
+    │           ├── application.properties      ← MySQL 连接 + JPA 配置
+    │           ├── schema.sql                  ← 建表脚本：users, books
+    │           └── data.sql                    ← 8 条样例书籍数据（与前端 Data.js 一致）
+    │
+    └── 答题纸.docx                ← 本次提交的答题纸
+
+
+================================================================
+二、Spring Boot 工程分层架构说明
+================================================================
+
+请求自上而下流转：
+
+    HTTP 请求
+        │
+        ▼
+   ┌────────────────────────────────┐
+   │  Controller 表现层             │  接收 HTTP、做参数校验、组装响应
+   │  /api/v1/users/register        │  UserController.java
+   │  /api/v1/books                 │  BookController.java
+   │  /api/v1/book/{id}             │
+   └────────────────────────────────┘
+        │   调用业务方法
+        ▼
+   ┌────────────────────────────────┐
+   │  Service  业务层               │  事务、业务规则（如用户名查重）
+   │  UserService.java              │  @Transactional
+   │  BookService.java              │
+   └────────────────────────────────┘
+        │   调用 Repository
+        ▼
+   ┌────────────────────────────────┐
+   │  Repository 数据访问层         │  Spring Data JPA，免实现 SQL
+   │  UserRepository extends        │
+   │      JpaRepository<User,Long>  │
+   │  BookRepository extends        │
+   │      JpaRepository<Book,Long>  │
+   └────────────────────────────────┘
+        │   ORM 映射
+        ▼
+   ┌────────────────────────────────┐
+   │  Entity 实体层                 │  @Entity 映射数据库表
+   │  User (users 表)               │
+   │  Book (books 表)               │
+   └────────────────────────────────┘
+        │   JDBC
+        ▼
+       MySQL  (数据库 bookstore)
+
+横切层：
+  • dto/         —— 入参 (UserRegisterRequest) + 出参包装 (ApiResponse)
+  • exception/   —— BusinessException + @RestControllerAdvice 全局异常
+  • config/      —— WebConfig 配置 CORS，允许前端 :3000 调用后端 :8080
+
+
+================================================================
+三、数据库设计
+================================================================
+
+数据库：bookstore  (CHARSET=utf8mb4)
+
+users 表：
+    id           BIGINT  PK auto_increment
+    username     VARCHAR(64)   UNIQUE NOT NULL
+    password     VARCHAR(128)  NOT NULL
+    email        VARCHAR(128)  UNIQUE
+    phone        VARCHAR(32)
+    nickname     VARCHAR(64)
+    created_at   DATETIME
+
+books 表：
+    id              BIGINT  PK auto_increment
+    title, author, category, badge, stars
+    rating_num, rating_count
+    price, original_price
+    description, intro, author_bio  (TEXT)
+    publisher, publish_date, pages, isbn, binding
+    cover_img, cover_emoji
+
+启动时 schema.sql 自动建表、data.sql 自动插入 8 条样例（与前端 Data.js 一致）。
+
+
+================================================================
+四、启动步骤
+================================================================
+
+1) 启动 MySQL，并执行：
+       CREATE DATABASE IF NOT EXISTS bookstore DEFAULT CHARACTER SET utf8mb4;
+
+2) 修改 backend/src/main/resources/application.properties 中：
+       spring.datasource.username=你的用户名
+       spring.datasource.password=你的密码
+
+3) 启动后端：
+       cd backend
+       mvn spring-boot:run
+   监听 http://localhost:8080
+
+4) （可选）启动前端：
+       cd frontend
+       npm install
+       npm start
+   访问 http://localhost:3000
+
+
+================================================================
+五、Postman 测试用例
+================================================================
+
+【接口 1】 用户注册   POST  http://localhost:8080/api/v1/users/register
+  Headers:  Content-Type: application/json
+  Body (raw / JSON):
+    {
+      "username": "alice",
+      "password": "secret123",
+      "email":    "alice@example.com",
+      "phone":    "13800000000",
+      "nickname": "Alice"
+    }
+  预期响应：HTTP 201 Created
+    {
+      "code": 200,
+      "message": "注册成功",
+      "data": { "id": 1, "username": "alice", "email": "alice@example.com", ... }
+    }
+  数据库验证：SELECT * FROM users; 可以看到新插入的记录。
+
+【接口 2】 获取所有书籍   GET  http://localhost:8080/api/v1/books
+  无需 Body
+  预期响应：HTTP 200 OK
+    {
+      "code": 200,
+      "message": "success",
+      "data": [ { "id":1, "title":"百年孤独", ... }, ... 共 8 条 ]
+    }
+
+【接口 3】 获取单本书籍   GET  http://localhost:8080/api/v1/book/4
+  无需 Body
+  预期响应：HTTP 200 OK
+    {
+      "code": 200,
+      "message": "success",
+      "data": { "id":4, "title":"三体（全集）", "author":"刘慈欣", ... }
+    }
+  错误用例：GET /api/v1/book/9999 → HTTP 400 + {"code":404,"message":"书籍不存在: id=9999"}
+
+
+================================================================
+六、需要截的图（按顺序粘贴进答题纸）
+================================================================
+
+★ 图 1：项目目录结构（IDE 截图）
+    打开 IntelliJ IDEA 或 VS Code，左侧 Project Explorer 完全展开
+    backend/src/main/java/com/bookstore/ 目录（能看到 controller、service、
+    repository、entity、dto、exception、config 七个子包）。
+    截图范围包含 frontend/ 和 backend/ 两个根目录。
+
+★ 图 2：MySQL 数据库与表
+    用 Navicat / DataGrip / 命令行 任一工具，截图显示：
+      - 数据库 bookstore 存在
+      - 包含 users、books 两张表
+      - books 表的 8 条数据（SELECT id, title, author FROM books;）
+
+★ 图 3：Spring Boot 启动成功的控制台
+    截 mvn spring-boot:run 启动日志，能看到：
+      "Tomcat started on port 8080"
+      "Started BookstoreApplication in x.x seconds"
+
+★ 图 4：Postman 测试 POST /api/v1/users/register
+    显示请求行 (POST + URL)、Headers、Body(JSON) 以及右下角的响应：
+      Status: 201 Created
+      Response Body: 包含 "注册成功" 和返回的 user 对象
+    （建议再截一张 SELECT * FROM users 的结果，证明数据已落库）
+
+★ 图 5：Postman 测试 GET /api/v1/books
+    显示请求行 (GET + URL) 和响应：
+      Status: 200 OK
+      Response Body: data 数组长度 8
+    可以滚动展开几条数据，能看到《百年孤独》《三体》等书名。
+
+★ 图 6：Postman 测试 GET /api/v1/book/4
+    显示请求行 (GET + URL=.../api/v1/book/4) 和响应：
+      Status: 200 OK
+      Response Body: title="三体（全集）"，author="刘慈欣"
+
+★ 图 7（可选加分项）：前后端联调
+    浏览器打开 http://localhost:3000，访问书籍列表页，
+    打开 DevTools → Network，能看到对 /api/v1/books 的 XHR 请求成功。
+
+================================================================
+（完）
+================================================================
