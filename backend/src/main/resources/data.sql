@@ -51,3 +51,8 @@ INSERT INTO books (id, title, author, category, badge, stars, rating_num, rating
  '卡勒德·胡赛尼（Khaled Hosseini），1965年生，阿富汗裔美国作家、医生。',
  '上海人民出版社', '2006年9月', '362页', '978-7-2080-6431-4', '平装', '/images/kite-runner.jpg', '📒')
 ON DUPLICATE KEY UPDATE title = VALUES(title);
+
+-- Seed admin user (password: admin123, BCrypt hashed)
+INSERT INTO users (username, password, email, nickname, role, created_at) VALUES
+('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iYCVbkHvB0F6.VFD/GMQE2Y/mGq2', 'admin@bookstore.com', '管理员', 'ADMIN', NOW())
+ON DUPLICATE KEY UPDATE username = VALUES(username);

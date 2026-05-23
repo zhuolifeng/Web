@@ -1,53 +1,31 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Form, Input, Button, Checkbox, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const { Title, Paragraph, Text } = Typography;
 
 function LoginPage() {
-  const [loading, setLoading] = useState(false);
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const onFinish = (values) => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+  const onFinish = async (values) => {
+    const result = await login(values.username, values.password);
+    if (result.success) {
       message.success(`登录成功！欢迎回来，${values.username}`);
-    }, 500);
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    } else {
+      message.error(result.message);
+    }
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh',
-      }}
-    >
-      <Card
-        style={{
-          width: 420,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-          borderRadius: 12,
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              background: 'linear-gradient(135deg, #4a6cf7 0%, #3b5bdb 100%)',
-              borderRadius: 12,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              fontSize: 28,
-            }}
-          >
-            📚
-          </div>
+    <div className="auth-page">
+      <Card className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">📚</div>
           <Title level={3} style={{ marginBottom: 8 }}>登录猪猪书城</Title>
           <Paragraph type="secondary">欢迎回来，请登录你的账号</Paragraph>
         </div>
@@ -62,7 +40,7 @@ function LoginPage() {
             name="username"
             rules={[{ required: true, message: '请输入用户名' }]}
           >
-            <Input prefix={<UserOutlined />} placeholder="请输入用户名或邮箱" />
+            <Input prefix={<UserOutlined />} placeholder="请输入用户名" />
           </Form.Item>
 
           <Form.Item
@@ -73,7 +51,7 @@ function LoginPage() {
           </Form.Item>
 
           <Form.Item>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="auth-row">
               <Form.Item name="remember" valuePropName="checked" noStyle>
                 <Checkbox>记住我</Checkbox>
               </Form.Item>
@@ -93,9 +71,9 @@ function LoginPage() {
             </Button>
           </Form.Item>
 
-          <div style={{ textAlign: 'center' }}>
+          <div className="auth-footer">
             <Text type="secondary">还没有账号？</Text>
-            <Link to="#">立即注册</Link>
+            <Link to="/register">立即注册</Link>
           </div>
         </Form>
       </Card>

@@ -32,19 +32,23 @@ public class User {
     @Column(length = 64)
     private String nickname;
 
+    @Column(length = 32)
+    private String role;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     public User() {}
 
     public User(Long id, String username, String password, String email,
-                String phone, String nickname, LocalDateTime createdAt) {
+                String phone, String nickname, String role, LocalDateTime createdAt) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.email = email;
         this.phone = phone;
         this.nickname = nickname;
+        this.role = role;
         this.createdAt = createdAt;
     }
 
@@ -65,6 +69,9 @@ public class User {
 
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
+
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

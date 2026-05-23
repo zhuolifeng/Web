@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Form,
   Input,
@@ -10,9 +10,9 @@ import {
   Statistic,
   Divider,
   Tag,
-  Result,
   Empty,
   Space,
+  message,
 } from 'antd';
 import {
   AlipayCircleOutlined,
@@ -20,32 +20,51 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useCart } from '../context/CartContext';
+import { orderService } from '../services/orderService';
+import { parsePrice } from '../utils/price';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 function OrderPage() {
-  const { cartItems, cartTotal, cartOriginalTotal, clearCart } = useCart();
-  const [submitted, setSubmitted] = useState(false);
+  const { cartItems, cartTotal, cartOriginalTotal, refresh } = useCart();
   const [payment, setPayment] = useState('alipay');
+  const [submitting, setSubmitting] = useState(false);
   const [imgErrors, setImgErrors] = useState({});
+  const navigate = useNavigate();
 
-  const handleImgError = (id) => {
-    setImgErrors(prev => ({ ...prev, [id]: true }));
-  };
+  const handleImgError = (id) => setImgErrors(prev => ({ ...prev, [id]: true }));
 
   const shipping = cartTotal >= 99 ? 0 : 10;
   const totalWithShipping = cartTotal + shipping;
   const discount = cartOriginalTotal - cartTotal;
 
-  const onFinish = () => {
-    setSubmitted(true);
-    clearCart();
+  const onFinish = async (values) => {
+    setSubmitting(true);
+    try {
+      const res = await orderService.create({
+        receiver: values.name,
+        phone: values.phone,
+        province: values.province,
+        city: values.city,
+        address: values.address,
+        note: values.note,
+        payment,
+      });
+      message.success('下单成功！');
+      await refresh();
+      navigate(`/orders`);
+      return res;
+    } catch (err) {
+      message.error(err.message || '下单失败');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (cartItems.length === 0 && !submitted) {
+  if (cartItems.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+      <div className="empty-wrapper">
         <Empty description="暂无可结算的商品">
           <Link to="/">
             <Button type="primary">去选书</Button>
@@ -55,69 +74,34 @@ function OrderPage() {
     );
   }
 
-  if (submitted) {
-    return (
-      <Result
-        status="success"
-        title="下单成功！"
-        subTitle="感谢您的购买，我们将尽快安排发货。"
-        extra={
-          <Link to="/">
-            <Button type="primary" size="large">继续逛逛</Button>
-          </Link>
-        }
-      />
-    );
-  }
-
   return (
     <>
-      <Title level={3} style={{ marginBottom: 24 }}>确认订单</Title>
+      <Title level={3} className="section-title">确认订单</Title>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24 }}>
-        {/* Left column */}
+      <div className="order-grid">
         <div>
-          <Card title="收货信息" style={{ marginBottom: 24 }}>
-            <Form
-              layout="vertical"
-              id="order-form"
-              onFinish={onFinish}
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-                <Form.Item
-                  label="收货人"
-                  name="name"
-                  rules={[{ required: true, message: '请输入收货人姓名' }]}
-                >
+          <Card title="收货信息" className="order-card-spaced">
+            <Form layout="vertical" id="order-form" onFinish={onFinish}>
+              <div className="order-form-grid">
+                <Form.Item label="收货人" name="name"
+                  rules={[{ required: true, message: '请输入收货人姓名' }]}>
                   <Input placeholder="请输入收货人姓名" />
                 </Form.Item>
-                <Form.Item
-                  label="手机号"
-                  name="phone"
-                  rules={[{ required: true, message: '请输入手机号码' }]}
-                >
+                <Form.Item label="手机号" name="phone"
+                  rules={[{ required: true, message: '请输入手机号码' }]}>
                   <Input placeholder="请输入手机号码" />
                 </Form.Item>
-                <Form.Item
-                  label="省份"
-                  name="province"
-                  rules={[{ required: true, message: '请输入省份' }]}
-                >
+                <Form.Item label="省份" name="province"
+                  rules={[{ required: true, message: '请输入省份' }]}>
                   <Input placeholder="省" />
                 </Form.Item>
-                <Form.Item
-                  label="城市"
-                  name="city"
-                  rules={[{ required: true, message: '请输入城市' }]}
-                >
+                <Form.Item label="城市" name="city"
+                  rules={[{ required: true, message: '请输入城市' }]}>
                   <Input placeholder="市" />
                 </Form.Item>
               </div>
-              <Form.Item
-                label="详细地址"
-                name="address"
-                rules={[{ required: true, message: '请输入详细地址' }]}
-              >
+              <Form.Item label="详细地址" name="address"
+                rules={[{ required: true, message: '请输入详细地址' }]}>
                 <Input placeholder="请输入详细收货地址" />
               </Form.Item>
               <Form.Item label="备注" name="note">
@@ -128,35 +112,11 @@ function OrderPage() {
 
           <Card title="商品清单">
             {cartItems.map(item => {
-              const unitPrice = parseFloat(item.price.replace('¥', ''));
+              const unitPrice = parsePrice(item.price);
               const subtotal = (unitPrice * item.quantity).toFixed(2);
               return (
-                <div
-                  key={item.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    padding: 12,
-                    background: '#f8f9fa',
-                    borderRadius: 8,
-                    marginBottom: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 50,
-                      height: 65,
-                      background: 'linear-gradient(135deg, #e9ecef, #dee2e6)',
-                      borderRadius: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 24,
-                      flexShrink: 0,
-                      overflow: 'hidden',
-                    }}
-                  >
+                <div key={item.id} className="order-item">
+                  <div className="order-item-thumb">
                     {imgErrors[item.id] ? (
                       <span>{item.coverEmoji}</span>
                     ) : (
@@ -164,71 +124,52 @@ function OrderPage() {
                         src={item.coverImg}
                         alt={item.title}
                         onError={() => handleImgError(item.id)}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="order-item-thumb-img"
                       />
                     )}
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div className="order-item-info">
                     <Text strong>{item.title}</Text>
                     <br />
-                    <Text type="secondary" style={{ fontSize: 13 }}>{item.author}</Text>
+                    <Text type="secondary" className="cart-author">{item.author}</Text>
                   </div>
-                  <div style={{ textAlign: 'center' }}>
+                  <div className="order-item-qty">
                     <Text>{item.price}</Text>
                     <br />
                     <Text type="secondary">x{item.quantity}</Text>
                   </div>
-                  <Text strong style={{ color: '#f03e3e', minWidth: 80, textAlign: 'right' }}>
-                    ¥{subtotal}
-                  </Text>
+                  <Text strong className="order-item-subtotal">¥{subtotal}</Text>
                 </div>
               );
             })}
           </Card>
         </div>
 
-        {/* Right column */}
         <div>
           <Card
-            title={
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #4a6cf7 0%, #764ba2 100%)',
-                  margin: '-24px -24px 0',
-                  padding: '16px 24px',
-                  borderRadius: '8px 8px 0 0',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: 16,
-                }}
-              >
-                订单摘要
-              </div>
-            }
+            title={<div className="order-summary-head">订单摘要</div>}
             headStyle={{ padding: 0, border: 'none' }}
           >
             <Space direction="vertical" style={{ width: '100%' }} size="small">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="summary-row">
                 <Text type="secondary">商品金额</Text>
                 <Text strong>¥{cartTotal.toFixed(2)}</Text>
               </div>
               {discount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="summary-row">
                   <Text type="secondary">优惠</Text>
-                  <Text style={{ color: '#37b24d' }}>-¥{discount.toFixed(2)}</Text>
+                  <Text className="summary-discount">-¥{discount.toFixed(2)}</Text>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="summary-row">
                 <Text type="secondary">运费</Text>
-                {shipping === 0 ? (
-                  <Tag color="green">免运费</Tag>
-                ) : (
-                  <Text strong>¥{shipping.toFixed(2)}</Text>
-                )}
+                {shipping === 0
+                  ? <Tag color="green">免运费</Tag>
+                  : <Text strong>¥{shipping.toFixed(2)}</Text>}
               </div>
               <Divider style={{ margin: '12px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text strong style={{ fontSize: 16 }}>应付总额</Text>
+              <div className="summary-row summary-row--center">
+                <Text strong className="summary-total-label">应付总额</Text>
                 <Statistic
                   value={totalWithShipping}
                   precision={2}
@@ -247,41 +188,33 @@ function OrderPage() {
               style={{ width: '100%' }}
             >
               <Space direction="vertical" style={{ width: '100%' }}>
-                <Card
-                  size="small"
-                  hoverable
+                <Card size="small" hoverable className="pay-option"
                   style={{
                     borderColor: payment === 'alipay' ? '#4a6cf7' : undefined,
                     background: payment === 'alipay' ? 'rgba(74,108,247,0.05)' : undefined,
                   }}
-                  onClick={() => setPayment('alipay')}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  onClick={() => setPayment('alipay')}>
+                  <div className="pay-option-row">
                     <Radio value="alipay" />
-                    <AlipayCircleOutlined style={{ fontSize: 24, color: '#1677ff' }} />
+                    <AlipayCircleOutlined className="pay-icon-alipay" />
                     <div>
-                      <Text strong>支付宝</Text>
-                      <br />
-                      <Text type="secondary" style={{ fontSize: 12 }}>推荐使用</Text>
+                      <Text strong>支付宝</Text><br />
+                      <Text type="secondary" className="pay-hint">推荐使用</Text>
                     </div>
                   </div>
                 </Card>
-                <Card
-                  size="small"
-                  hoverable
+                <Card size="small" hoverable className="pay-option"
                   style={{
                     borderColor: payment === 'wechat' ? '#4a6cf7' : undefined,
                     background: payment === 'wechat' ? 'rgba(74,108,247,0.05)' : undefined,
                   }}
-                  onClick={() => setPayment('wechat')}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  onClick={() => setPayment('wechat')}>
+                  <div className="pay-option-row">
                     <Radio value="wechat" />
-                    <WechatOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+                    <WechatOutlined className="pay-icon-wechat" />
                     <div>
-                      <Text strong>微信支付</Text>
-                      <br />
-                      <Text type="secondary" style={{ fontSize: 12 }}>微信扫码支付</Text>
+                      <Text strong>微信支付</Text><br />
+                      <Text type="secondary" className="pay-hint">微信扫码支付</Text>
                     </div>
                   </div>
                 </Card>
@@ -294,7 +227,8 @@ function OrderPage() {
               block
               htmlType="submit"
               form="order-form"
-              style={{ marginTop: 20, height: 48 }}
+              loading={submitting}
+              className="order-submit-btn"
               icon={<CheckCircleOutlined />}
             >
               提交订单

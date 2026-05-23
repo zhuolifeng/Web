@@ -10,6 +10,8 @@ import {
   Statistic,
   Empty,
   Popconfirm,
+  Spin,
+  message,
 } from 'antd';
 import {
   DeleteOutlined,
@@ -17,6 +19,7 @@ import {
   ClearOutlined,
 } from '@ant-design/icons';
 import { useCart } from '../context/CartContext';
+import { parsePrice } from '../utils/price';
 
 const { Title, Text } = Typography;
 
@@ -28,21 +31,20 @@ function CartPage() {
     clearCart,
     cartTotal,
     cartOriginalTotal,
+    loading,
   } = useCart();
 
   const [imgErrors, setImgErrors] = useState({});
+  const handleImgError = (id) => setImgErrors(prev => ({ ...prev, [id]: true }));
 
-  const handleImgError = (id) => {
-    setImgErrors(prev => ({ ...prev, [id]: true }));
-  };
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>;
+  }
 
   if (cartItems.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '80px 0' }}>
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="购物车空空如也"
-        >
+      <div className="empty-wrapper">
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="购物车空空如也">
           <Link to="/">
             <Button type="primary" icon={<ShoppingCartOutlined />}>去逛逛</Button>
           </Link>
@@ -59,21 +61,8 @@ function CartPage() {
       dataIndex: 'title',
       key: 'title',
       render: (_, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div
-            style={{
-              width: 60,
-              height: 80,
-              background: 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
-              borderRadius: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 28,
-              flexShrink: 0,
-              overflow: 'hidden',
-            }}
-          >
+        <div className="cart-row-cell">
+          <div className="cart-thumb">
             {imgErrors[record.id] ? (
               <span>{record.coverEmoji}</span>
             ) : (
@@ -81,16 +70,16 @@ function CartPage() {
                 src={record.coverImg}
                 alt={record.title}
                 onError={() => handleImgError(record.id)}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                className="cart-thumb-img"
               />
             )}
           </div>
           <div>
-            <Link to={`/book/${record.id}`}>
+            <Link to={`/book/${record.bookId}`}>
               <Text strong>{record.title}</Text>
             </Link>
             <br />
-            <Text type="secondary" style={{ fontSize: 13 }}>{record.author}</Text>
+            <Text type="secondary" className="cart-author">{record.author}</Text>
           </div>
         </div>
       ),
@@ -100,7 +89,7 @@ function CartPage() {
       dataIndex: 'price',
       key: 'price',
       width: 120,
-      render: (price) => <Text strong style={{ color: '#f03e3e' }}>{price}</Text>,
+      render: (price) => <Text strong className="cart-price-cell">{price}</Text>,
     },
     {
       title: '数量',
@@ -112,7 +101,11 @@ function CartPage() {
           min={1}
           max={99}
           value={qty}
-          onChange={(val) => val && updateQuantity(record.id, val)}
+          onChange={(val) => {
+            if (!val) return;
+            updateQuantity(record.id, val).catch(err =>
+              message.error(err.message || '更新数量失败'));
+          }}
         />
       ),
     },
@@ -120,12 +113,9 @@ function CartPage() {
       title: '小计',
       key: 'subtotal',
       width: 120,
-      render: (_, record) => {
-        const unitPrice = parseFloat(record.price.replace('¥', ''));
-        return (
-          <Text strong>¥{(unitPrice * record.quantity).toFixed(2)}</Text>
-        );
-      },
+      render: (_, record) => (
+        <Text strong>¥{(parsePrice(record.price) * record.quantity).toFixed(2)}</Text>
+      ),
     },
     {
       title: '操作',
@@ -134,7 +124,8 @@ function CartPage() {
       render: (_, record) => (
         <Popconfirm
           title="确定删除该商品？"
-          onConfirm={() => removeFromCart(record.id)}
+          onConfirm={() => removeFromCart(record.id).catch(err =>
+            message.error(err.message || '删除失败'))}
           okText="确定"
           cancelText="取消"
         >
@@ -146,7 +137,7 @@ function CartPage() {
 
   return (
     <>
-      <Title level={3} style={{ marginBottom: 24 }}>
+      <Title level={3} className="section-title">
         <ShoppingCartOutlined /> 购物车（{cartItems.length} 件商品）
       </Title>
 
@@ -159,14 +150,8 @@ function CartPage() {
         />
       </Card>
 
-      <Card style={{ marginTop: 24 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+      <Card className="cart-summary-card">
+        <div className="cart-summary-row">
           <Space size="large">
             <Statistic
               title="商品件数"
@@ -187,15 +172,14 @@ function CartPage() {
           <Space size="middle">
             <Popconfirm
               title="确定清空购物车？"
-              onConfirm={clearCart}
+              onConfirm={() => clearCart().catch(err =>
+                message.error(err.message || '清空失败'))}
               okText="确定"
               cancelText="取消"
             >
               <Button icon={<ClearOutlined />}>清空购物车</Button>
             </Popconfirm>
-            <Text style={{ fontSize: 24, fontWeight: 700, color: '#f03e3e' }}>
-              合计：¥{cartTotal.toFixed(2)}
-            </Text>
+            <Text className="cart-total-text">合计：¥{cartTotal.toFixed(2)}</Text>
             <Link to="/order">
               <Button type="primary" size="large">去结算</Button>
             </Link>

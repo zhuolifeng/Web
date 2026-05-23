@@ -8,60 +8,43 @@ function BookCard({ book }) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <Link to={`/book/${book.id}`} style={{ textDecoration: 'none' }}>
+    <Link to={`/book/${book.id}`} className="book-card-link">
       <Card
         hoverable
         cover={
-          <div
-            style={{
-              height: 220,
-              background: 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
+          <div className="book-cover">
             {book.badge && (
-              <Tag
-                color="gold"
-                style={{ position: 'absolute', top: 12, left: 12, zIndex: 1 }}
-              >
+              <Tag color="gold" className="book-badge">
                 {book.badge}
               </Tag>
             )}
             {imgError ? (
-              <span style={{ fontSize: 64 }}>{book.coverEmoji}</span>
+              <span className="book-cover-emoji">{book.coverEmoji}</span>
             ) : (
               <img
                 src={book.coverImg}
                 alt={`${book.title}封面`}
                 onError={() => setImgError(true)}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                className="book-cover-img"
               />
             )}
           </div>
         }
-        style={{ borderRadius: 12 }}
+        className="book-card"
         bodyStyle={{ padding: 16 }}
       >
         <Meta
-          title={<span style={{ fontSize: 15, fontWeight: 600 }}>{book.title}</span>}
+          title={<span className="book-meta-title">{book.title}</span>}
           description={book.author}
         />
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: 12,
-          }}
-        >
-          <span style={{ fontSize: 20, fontWeight: 700, color: '#f03e3e' }}>
-            {book.price}
-          </span>
-          <Rate disabled defaultValue={parseFloat(book.ratingNum)} allowHalf style={{ fontSize: 14 }} />
+        <div className="book-meta-row">
+          <span className="book-price">{book.price}</span>
+          <Rate
+            disabled
+            defaultValue={parseFloat(book.ratingNum)}
+            allowHalf
+            className="book-rate"
+          />
         </div>
       </Card>
     </Link>

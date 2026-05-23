@@ -1,12 +1,14 @@
-/* Minimal global overrides — Ant Design handles most styling */
+/* =====================================================
+   Global styles for ZhuZhu Bookstore
+   Replaces large/repeated inline style blocks in JSX.
+   ===================================================== */
 
-/* Remove number input spinners */
+/* ---------- Form input cleanup ---------- */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
 input[type="number"] {
   -moz-appearance: textfield;
 }
@@ -16,4 +18,485 @@ input[type="number"] {
   .ant-card .book-detail-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* ---------- App layout ---------- */
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-sider {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow: auto;
+}
+
+.app-logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+.app-logo-emoji {
+  font-size: 24px;
+}
+.app-logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4a6cf7;
+  margin-left: 8px;
+}
+
+.app-main {
+  transition: all 0.2s;
+}
+.app-main--expanded {
+  margin-left: 200px;
+}
+.app-main--collapsed {
+  margin-left: 80px;
+}
+
+.app-header {
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 99;
+}
+.app-header-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+.app-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.app-content {
+  margin: 24px;
+  padding: 24px;
+  min-height: 280px;
+}
+
+.app-footer {
+  text-align: center;
+  color: #999;
+}
+
+.app-menu {
+  border-right: 0;
+  margin-top: 8px;
+}
+
+/* ---------- Hero section (HomePage) ---------- */
+.hero {
+  background: linear-gradient(135deg, #4a6cf7 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 60px 40px;
+  text-align: center;
+  margin-bottom: 40px;
+}
+.hero-title {
+  color: #fff !important;
+  margin-bottom: 12px !important;
+}
+.hero-text {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 18px;
+  margin-bottom: 24px !important;
+}
+.hero-button {
+  height: 48px;
+  padding-inline: 32px;
+}
+
+/* ---------- Auth pages (Login / Register) ---------- */
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+.auth-card {
+  width: 420px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+}
+.auth-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #4a6cf7 0%, #3b5bdb 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 28px;
+}
+.auth-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.auth-footer {
+  text-align: center;
+}
+
+/* ---------- Book card ---------- */
+.book-card-link {
+  text-decoration: none;
+}
+.book-card {
+  border-radius: 12px;
+}
+.book-cover {
+  height: 220px;
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.book-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.book-cover-emoji {
+  font-size: 64px;
+}
+.book-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+}
+.book-meta-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.book-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+.book-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f03e3e;
+}
+.book-rate {
+  font-size: 14px;
+}
+
+/* ---------- Profile page ---------- */
+.profile-card-center {
+  text-align: center;
+}
+.profile-avatar {
+  background-color: #4a6cf7;
+  margin-bottom: 16px;
+  font-size: 48px;
+}
+.profile-bio {
+  text-align: left;
+}
+.profile-stats {
+  display: flex;
+  justify-content: space-around;
+}
+.profile-stat-num {
+  font-size: 20px;
+  color: #4a6cf7;
+}
+.profile-stat-label {
+  font-size: 12px;
+}
+.account-card {
+  margin-top: 16px;
+}
+.account-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.account-row:last-child {
+  margin-bottom: 0;
+}
+.profile-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* ---------- Section title spacing ---------- */
+.section-title {
+  margin-bottom: 24px !important;
+}
+
+/* ---------- Empty state wrapper ---------- */
+.empty-wrapper {
+  text-align: center;
+  padding: 80px 0;
+}
+
+/* ---------- Cart page ---------- */
+.cart-row-cell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.cart-thumb {
+  width: 60px;
+  height: 80px;
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.cart-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cart-author {
+  font-size: 13px;
+}
+.cart-price-cell {
+  color: #f03e3e;
+}
+.cart-summary-card {
+  margin-top: 24px;
+}
+.cart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cart-total-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f03e3e;
+}
+
+/* ---------- Order page ---------- */
+.order-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+}
+.order-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.order-card-spaced {
+  margin-bottom: 24px;
+}
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.order-item-thumb {
+  width: 50px;
+  height: 65px;
+  background: linear-gradient(135deg, #e9ecef, #dee2e6);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.order-item-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.order-item-info {
+  flex: 1;
+}
+.order-item-qty {
+  text-align: center;
+}
+.order-item-subtotal {
+  color: #f03e3e;
+  min-width: 80px;
+  text-align: right;
+}
+.order-summary-head {
+  background: linear-gradient(135deg, #4a6cf7 0%, #764ba2 100%);
+  margin: -24px -24px 0;
+  padding: 16px 24px;
+  border-radius: 8px 8px 0 0;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+}
+.summary-row--center {
+  align-items: center;
+}
+.summary-discount {
+  color: #37b24d;
+}
+.summary-total-label {
+  font-size: 16px;
+}
+.pay-option {
+  cursor: pointer;
+}
+.pay-option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pay-icon-alipay {
+  font-size: 24px;
+  color: #1677ff;
+}
+.pay-icon-wechat {
+  font-size: 24px;
+  color: #52c41a;
+}
+.pay-hint {
+  font-size: 12px;
+}
+.order-submit-btn {
+  margin-top: 20px;
+  height: 48px;
+}
+
+/* ---------- Book detail page ---------- */
+.detail-breadcrumb {
+  margin-bottom: 24px;
+}
+.detail-card {
+  margin-bottom: 24px;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 40px;
+}
+.detail-cover {
+  height: 400px;
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.detail-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.detail-cover-emoji {
+  font-size: 120px;
+}
+.detail-info {
+  display: flex;
+  flex-direction: column;
+}
+.detail-author {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+.detail-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.detail-rating-num {
+  color: #faad14;
+}
+.detail-desc {
+  line-height: 1.8;
+}
+.detail-price-box {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.detail-price {
+  font-size: 32px;
+  font-weight: 700;
+  color: #f03e3e;
+}
+.detail-original-price {
+  font-size: 16px;
+}
+.detail-stock-tag {
+  margin-top: 8px;
+}
+.detail-actions {
+  margin-top: auto;
+}
+.detail-qty-input {
+  width: 100px;
+}
+.detail-body-paragraph {
+  line-height: 1.8;
+}
+
+/* Responsive: collapse two-column grids on narrow screens */
+@media (max-width: 768px) {
+  .order-grid {
+    grid-template-columns: 1fr;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* ---------- Order list page ---------- */
+.order-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.order-list-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.order-total {
+  font-size: 18px;
+  color: #f03e3e;
 }

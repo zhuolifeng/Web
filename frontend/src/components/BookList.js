@@ -6,7 +6,7 @@ const { Title } = Typography;
 function BookList({ books }) {
   return (
     <section>
-      <Title level={3} style={{ marginBottom: 24 }}>热门书籍</Title>
+      <Title level={3} className="section-title">热门书籍</Title>
       <Row gutter={[24, 24]}>
         {books.map(book => (
           <Col key={book.id} xs={24} sm={12} md={8} lg={6}>
