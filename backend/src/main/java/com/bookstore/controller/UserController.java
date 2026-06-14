@@ -2,9 +2,9 @@ package com.bookstore.controller;
 
 import com.bookstore.dto.ApiResponse;
 import com.bookstore.dto.LoginResponse;
+import com.bookstore.dto.UserDto;
 import com.bookstore.dto.UserLoginRequest;
 import com.bookstore.dto.UserRegisterRequest;
-import com.bookstore.entity.User;
 import com.bookstore.exception.BusinessException;
 import com.bookstore.security.JwtUtil;
 import com.bookstore.service.AuditService;
@@ -18,6 +18,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 用户相关 REST 接口。
+ * <p>
+ * Controller 只依赖 {@link UserService} 返回的 {@link UserDto}，
+ * 完全不接触 JPA Entity；这样下学期切换到其他存储时只需修改 service.impl，
+ * Controller 与前端契约保持不变。
+ */
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
@@ -32,11 +39,12 @@ public class UserController {
         this.auditService = auditService;
     }
 
+    /** POST /api/v1/users/register —— 用户注册 */
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<LoginResponse>> register(
             @Valid @RequestBody UserRegisterRequest request,
             HttpServletRequest httpRequest) {
-        User saved = userService.register(request);
+        UserDto saved = userService.register(request);
         auditService.log(saved.getId(), saved.getUsername(), "REGISTER", "新用户注册", httpRequest);
         LoginResponse resp = new LoginResponse(
                 null, saved.getId(), saved.getUsername(),
@@ -50,7 +58,7 @@ public class UserController {
             @Valid @RequestBody UserLoginRequest request,
             HttpServletRequest httpRequest) {
         try {
-            User user = userService.login(request.getUsername(), request.getPassword());
+            UserDto user = userService.login(request.getUsername(), request.getPassword());
             String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
             LoginResponse resp = new LoginResponse(
                     token, user.getId(), user.getUsername(),
@@ -66,7 +74,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<LoginResponse>> me(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        User user = userService.getById(userId);
+        UserDto user = userService.getById(userId);
         LoginResponse resp = new LoginResponse(
                 null, user.getId(), user.getUsername(),
                 user.getEmail(), user.getNickname(), user.getRole());
@@ -79,7 +87,7 @@ public class UserController {
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        User user = userService.updateProfile(
+        UserDto user = userService.updateProfile(
                 userId,
                 body.get("nickname"),
                 body.get("email"),

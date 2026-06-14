@@ -1,5 +1,6 @@
 package com.bookstore.service.impl;
 
+import com.bookstore.dto.UserDto;
 import com.bookstore.dto.UserRegisterRequest;
 import com.bookstore.entity.User;
 import com.bookstore.exception.BusinessException;
@@ -11,6 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * 通过 Spring Data JPA 的 {@link UserRepository} 持久化用户，
+ * 对外返回 {@link UserDto}，把 Entity 完全限制在 service.impl 包内。
+ */
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -24,7 +29,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User register(UserRegisterRequest request) {
+    public UserDto register(UserRegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new BusinessException(409, "用户名已存在");
         }
@@ -43,29 +48,31 @@ public class UserServiceImpl implements UserService {
         user.setRole("USER");
         user.setCreatedAt(LocalDateTime.now());
 
-        return userRepository.save(user);
+        return UserDto.from(userRepository.save(user));
     }
 
     @Override
-    public User login(String username, String password) {
+    public UserDto login(String username, String password) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException(401, "用户名或密码错误"));
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BusinessException(401, "用户名或密码错误");
         }
-        return user;
+        return UserDto.from(user);
     }
 
     @Override
-    public User getById(Long id) {
+    public UserDto getById(Long id) {
         return userRepository.findById(id)
+                .map(UserDto::from)
                 .orElseThrow(() -> new BusinessException(404, "用户不存在"));
     }
 
     @Override
     @Transactional
-    public User updateProfile(Long userId, String nickname, String email, String phone) {
-        User user = getById(userId);
+    public UserDto updateProfile(Long userId, String nickname, String email, String phone) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(404, "用户不存在"));
         if (nickname != null) user.setNickname(nickname);
         if (email != null && !email.isBlank()) {
             userRepository.findByEmail(email).ifPresent(other -> {
@@ -76,6 +83,6 @@ public class UserServiceImpl implements UserService {
             user.setEmail(email);
         }
         if (phone != null) user.setPhone(phone);
-        return userRepository.save(user);
+        return UserDto.from(userRepository.save(user));
     }
 }

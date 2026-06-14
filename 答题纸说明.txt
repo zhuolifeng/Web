@@ -1,117 +1,300 @@
 ================================================================
-  互联网应用开发技术 - 作业 4 / 迭代 2
-  项目结构与 Postman 测试结果说明
+  互联网应用开发技术 — 作业 5 / 迭代 3 基础版
+  使用 Spring Data JPA + DTO 层改造后端
+  项目结构、改造说明、Postman 测试结果（建议粘贴入“答题纸.docx”）
 ================================================================
-
-【建议把本文件的内容粘贴进“00-课程概述”单元中的“作业答题纸.docx”，
-  对应位置插入下面列出的 7 张截图即可。】
 
 
 ================================================================
-一、提交目录结构（解压后的根目录）
+一、本次改造的核心目标（对照评分标准）
+================================================================
+
+A. Spring Boot 工程结构合理，**新增 DTO 层** 对 Repository 层进行封装。  1.5 分
+B. 三个核心 API 全部通过 **Spring Data JPA** 读写数据库。                每个 1.5 分，共 4.5 分
+   1) POST /api/v1/users/register       —— 用户注册
+   2) GET  /api/v1/books                —— 书籍列表
+   3) GET  /api/v1/book/{id}            —— 单本书籍详情
+
+API 路径与请求/响应字段相对“迭代 2”完全保持不变（向前兼容前端）。
+
+
+================================================================
+二、改造前 vs 改造后（关键差异）
+================================================================
+
+┌────────────────┬───────────────────────────────┬───────────────────────────────────────┐
+│   层           │   改造前（迭代 2）            │   改造后（本次提交）                  │
+├────────────────┼───────────────────────────────┼───────────────────────────────────────┤
+│ Repository     │ extends JpaRepository         │ 同上 + 派生查询/@Query 方法           │
+│                │                               │ (findByCategory/searchByKeyword 等)   │
+├────────────────┼───────────────────────────────┼───────────────────────────────────────┤
+│ Service        │ 返回 Entity (User / Book)     │ **统一返回 DTO** (UserDto / BookDto)  │
+│                │                               │ Entity 仅在 service.impl 内部出现     │
+├────────────────┼───────────────────────────────┼───────────────────────────────────────┤
+│ Controller     │ 直接把 Entity 序列化给前端    │ 只与 DTO 通信，不感知存储实现         │
+├────────────────┼───────────────────────────────┼───────────────────────────────────────┤
+│ DTO 层         │ 仅有入参 DTO                  │ **新增出参 DTO**：UserDto / BookDto   │
+│                │ (UserRegisterRequest 等)      │ 提供 from(Entity) 静态工厂            │
+└────────────────┴───────────────────────────────┴───────────────────────────────────────┘
+
+“出参 DTO” 是这次改造的核心，意义有三：
+
+  1) **屏蔽数据源**：无论底层是 MySQL / MongoDB / Redis，Controller 与前端只看到
+     稳定的 BookDto / UserDto 字段，未来切换存储只需新增 from(xxxEntity)，
+     不会污染上层；
+  2) **安全**：UserDto 默认不暴露 password 字段，避免把 BCrypt 密文返回给前端；
+  3) **解耦**：JPA Entity 上的 @OneToMany、懒加载等持久化细节不会通过 JSON
+     序列化泄漏出去（不再出现 LazyInitializationException 之类的问题）。
+
+
+================================================================
+三、提交目录结构（解压后的根目录）
 ================================================================
 
 学号-作业1.rar
 └── 学号-作业1/
-    ├── frontend/                ← 前端工程（React 单页应用）
+    ├── frontend/                       ← 前端工程（React 单页应用，保持不变）
     │   ├── public/
     │   │   ├── index.html
-    │   │   └── images/          ← 书籍封面图
-    │   ├── src/
-    │   │   ├── components/      ← BookCard / BookList / Layout
-    │   │   ├── context/         ← CartContext.js（购物车状态）
-    │   │   ├── pages/           ← Home / BookDetail / Cart / Login / Order / Profile
-    │   │   ├── Data.js          ← 8 本书的样例数据（与后端 data.sql 一致）
-    │   │   ├── App.js           ← React Router 路由根
-    │   │   ├── index.js         ← 入口
-    │   │   └── index.css
-    │   ├── package.json
-    │   └── README.md
+    │   │   └── images/                 ← 书籍封面图
+    │   └── src/
+    │       ├── components/             ← BookCard / BookList / Layout / RequireAuth
+    │       ├── context/                ← AuthContext / CartContext
+    │       ├── pages/                  ← Home / BookDetail / Cart / Login / Register / Profile / Order …
+    │       ├── services/               ← bookService / userService / cartService / orderService / http
+    │       └── App.js / index.js / styles.css
     │
-    ├── backend/                 ← 后端工程（Spring Boot 3.2.5）
-    │   ├── pom.xml              ← Maven 依赖：Web、Data JPA、MySQL、Validation、Lombok
-    │   ├── README.md            ← 启动步骤 + Postman 用例
+    ├── backend/                        ← 后端工程（Spring Boot 3.2.5 + Spring Data JPA）
+    │   ├── pom.xml                     ← 依赖：Web, **Data JPA**, MySQL, Validation, Security, JJWT
+    │   ├── README.md
     │   └── src/main/
     │       ├── java/com/bookstore/
-    │       │   ├── BookstoreApplication.java   ← @SpringBootApplication 启动类
-    │       │   ├── config/
-    │       │   │   └── WebConfig.java          ← CORS（前后端联调）
-    │       │   ├── controller/                 ← 表现层（@RestController）
-    │       │   │   ├── UserController.java     ← POST /api/v1/users/register
-    │       │   │   └── BookController.java     ← GET  /api/v1/books, /api/v1/book/{id}
-    │       │   ├── service/                    ← 业务层（@Service / @Transactional）
+    │       │   ├── BookstoreApplication.java
+    │       │   │
+    │       │   ├── controller/                ← 表现层（@RestController），只依赖 DTO
+    │       │   │   ├── UserController.java    ← POST /api/v1/users/register, /login, /me, /profile
+    │       │   │   ├── BookController.java    ← GET  /api/v1/books, /api/v1/book/{id}
+    │       │   │   ├── CartController.java
+    │       │   │   └── OrderController.java
+    │       │   │
+    │       │   ├── service/                   ← 业务接口（统一返回 DTO）
     │       │   │   ├── UserService.java
-    │       │   │   └── BookService.java
-    │       │   ├── repository/                 ← 数据访问层（Spring Data JPA）
-    │       │   │   ├── UserRepository.java     ← extends JpaRepository<User, Long>
-    │       │   │   └── BookRepository.java     ← extends JpaRepository<Book, Long>
-    │       │   ├── entity/                     ← 实体类（@Entity + @Table）
-    │       │   │   ├── User.java               ← users 表
-    │       │   │   └── Book.java               ← books 表
-    │       │   ├── dto/                        ← 数据传输对象
-    │       │   │   ├── UserRegisterRequest.java（注册入参 + 校验）
-    │       │   │   └── ApiResponse.java        ← 统一响应包装 {code,message,data}
-    │       │   └── exception/                  ← 全局异常处理
-    │       │       ├── BusinessException.java
-    │       │       └── GlobalExceptionHandler.java
+    │       │   │   ├── BookService.java
+    │       │   │   ├── CartService.java
+    │       │   │   ├── OrderService.java
+    │       │   │   ├── AuditService.java
+    │       │   │   └── impl/                  ← 业务实现（持有 Repository + Entity↔DTO 转换）
+    │       │   │       ├── UserServiceImpl.java
+    │       │   │       ├── BookServiceImpl.java
+    │       │   │       ├── CartServiceImpl.java
+    │       │   │       ├── OrderServiceImpl.java
+    │       │   │       └── AuditServiceImpl.java
+    │       │   │
+    │       │   ├── repository/                ← Spring Data JPA 仓储层
+    │       │   │   ├── UserRepository.java    ← extends JpaRepository<User, Long>
+    │       │   │   ├── BookRepository.java    ← extends JpaRepository<Book, Long> + 派生查询
+    │       │   │   ├── CartItemRepository.java
+    │       │   │   ├── OrderRepository.java
+    │       │   │   ├── OrderItemRepository.java
+    │       │   │   └── AuditLogRepository.java
+    │       │   │
+    │       │   ├── entity/                    ← JPA 实体（@Entity + @Table），只对 service.impl 可见
+    │       │   │   ├── User.java              ← users 表
+    │       │   │   ├── Book.java              ← books 表
+    │       │   │   ├── CartItem.java
+    │       │   │   ├── Order.java / OrderItem.java
+    │       │   │   └── AuditLog.java
+    │       │   │
+    │       │   ├── dto/                       ← **数据传输对象（本次新增重点）**
+    │       │   │   ├── UserDto.java           ← ★ 新增：屏蔽 User Entity
+    │       │   │   ├── BookDto.java           ← ★ 新增：屏蔽 Book Entity
+    │       │   │   ├── UserRegisterRequest.java   ← 注册入参 + 校验
+    │       │   │   ├── UserLoginRequest.java
+    │       │   │   ├── LoginResponse.java     ← 登录/注册响应
+    │       │   │   ├── CartItemDto.java / CartAddRequest.java / CartUpdateRequest.java
+    │       │   │   ├── OrderCreateRequest.java / OrderDto.java
+    │       │   │   └── ApiResponse.java       ← 统一响应包装 {code, message, data}
+    │       │   │
+    │       │   ├── exception/                 ← 全局异常处理
+    │       │   │   ├── BusinessException.java
+    │       │   │   └── GlobalExceptionHandler.java
+    │       │   │
+    │       │   ├── security/                  ← JWT 拦截
+    │       │   │   ├── JwtUtil.java
+    │       │   │   └── JwtAuthenticationFilter.java
+    │       │   │
+    │       │   └── config/
+    │       │       ├── SecurityConfig.java
+    │       │       └── WebConfig.java         ← CORS
+    │       │
     │       └── resources/
-    │           ├── application.properties      ← MySQL 连接 + JPA 配置
-    │           ├── schema.sql                  ← 建表脚本：users, books
-    │           └── data.sql                    ← 8 条样例书籍数据（与前端 Data.js 一致）
+    │           ├── application.properties     ← MySQL 连接 + JPA 配置
+    │           ├── schema.sql                 ← 建表脚本：users, books, …
+    │           └── data.sql                   ← 8 条样例书籍 + admin 账号
     │
-    └── 答题纸.docx                ← 本次提交的答题纸
+    └── 答题纸.docx                            ← 本次提交的答题纸
 
 
 ================================================================
-二、Spring Boot 工程分层架构说明
+四、Spring Boot 工程的分层与请求流转
 ================================================================
 
-请求自上而下流转：
-
-    HTTP 请求
-        │
-        ▼
-   ┌────────────────────────────────┐
-   │  Controller 表现层             │  接收 HTTP、做参数校验、组装响应
-   │  /api/v1/users/register        │  UserController.java
-   │  /api/v1/books                 │  BookController.java
-   │  /api/v1/book/{id}             │
-   └────────────────────────────────┘
-        │   调用业务方法
-        ▼
-   ┌────────────────────────────────┐
-   │  Service  业务层               │  事务、业务规则（如用户名查重）
-   │  UserService.java              │  @Transactional
-   │  BookService.java              │
-   └────────────────────────────────┘
-        │   调用 Repository
-        ▼
-   ┌────────────────────────────────┐
-   │  Repository 数据访问层         │  Spring Data JPA，免实现 SQL
-   │  UserRepository extends        │
-   │      JpaRepository<User,Long>  │
-   │  BookRepository extends        │
-   │      JpaRepository<Book,Long>  │
-   └────────────────────────────────┘
-        │   ORM 映射
-        ▼
-   ┌────────────────────────────────┐
-   │  Entity 实体层                 │  @Entity 映射数据库表
-   │  User (users 表)               │
-   │  Book (books 表)               │
-   └────────────────────────────────┘
-        │   JDBC
-        ▼
-       MySQL  (数据库 bookstore)
+           HTTP 请求 (浏览器 / Postman)
+                       │
+                       ▼
+  ┌──────────────────────────────────────────────┐
+  │  Controller 表现层（@RestController）        │
+  │    UserController / BookController …         │
+  │    —— 只依赖 DTO，不感知 Entity              │
+  └──────────────────────────────────────────────┘
+                       │ 调用业务方法
+                       ▼
+  ┌──────────────────────────────────────────────┐
+  │  Service 业务层（接口 + 实现分离）           │
+  │    interface UserService / BookService …     │
+  │    impl/   ↔ 处理事务、规则；做 Entity↔DTO   │
+  │            转换（UserDto.from(user) 等）     │
+  └──────────────────────────────────────────────┘
+                       │ 调用 Repository
+                       ▼
+  ┌──────────────────────────────────────────────┐
+  │  Repository 数据访问层（Spring Data JPA）    │
+  │    UserRepository extends                    │
+  │        JpaRepository<User, Long>             │
+  │    BookRepository extends                    │
+  │        JpaRepository<Book, Long>             │
+  │      + findByCategory / searchByKeyword …    │
+  └──────────────────────────────────────────────┘
+                       │ ORM 映射 (Hibernate)
+                       ▼
+  ┌──────────────────────────────────────────────┐
+  │  Entity 实体层（@Entity + @Table）           │
+  │    User (users 表) / Book (books 表) …       │
+  └──────────────────────────────────────────────┘
+                       │ JDBC
+                       ▼
+                   MySQL  (bookstore)
 
 横切层：
-  • dto/         —— 入参 (UserRegisterRequest) + 出参包装 (ApiResponse)
+  • dto/         —— ★ 出/入参 DTO（含本次新增 UserDto / BookDto）
   • exception/   —— BusinessException + @RestControllerAdvice 全局异常
   • config/      —— WebConfig 配置 CORS，允许前端 :3000 调用后端 :8080
+  • security/    —— JWT 拦截器，保护非公开 API
 
 
 ================================================================
-三、数据库设计
+五、关键代码片段（说明 JPA + DTO 的协作方式）
+================================================================
+
+★ 5.1  Repository（Spring Data JPA，无需手写 SQL）
+
+    @Repository
+    public interface UserRepository extends JpaRepository<User, Long> {
+        Optional<User> findByUsername(String username);
+        Optional<User> findByEmail(String email);
+        boolean existsByUsername(String username);
+        boolean existsByEmail(String email);
+    }
+
+    @Repository
+    public interface BookRepository extends JpaRepository<Book, Long> {
+        List<Book> findByCategory(String category);
+        List<Book> findByAuthorContaining(String kw);
+
+        @Query("SELECT b FROM Book b WHERE " +
+               "LOWER(b.title)    LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
+               "LOWER(b.author)   LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
+               "LOWER(b.category) LIKE LOWER(CONCAT('%', :kw, '%'))")
+        List<Book> searchByKeyword(@Param("kw") String keyword);
+    }
+
+
+★ 5.2  DTO（屏蔽 Entity，提供 from() 静态工厂）
+
+    public class BookDto {
+        private Long id; private String title; private String author; ...
+        public static BookDto from(Book book) {
+            BookDto dto = new BookDto();
+            dto.id = book.getId();
+            dto.title = book.getTitle();
+            ...
+            return dto;
+        }
+        // getters / setters ...
+    }
+
+    public class UserDto {
+        // ★ 不包含 password 字段
+        private Long id; private String username; private String email; ...
+        public static UserDto from(User user) { ... }
+    }
+
+
+★ 5.3  Service 实现（JPA 查 → DTO 转 → 上抛）
+
+    @Service @Transactional(readOnly = true)
+    public class BookServiceImpl implements BookService {
+        private final BookRepository bookRepository;
+        public List<BookDto> listAll() {
+            return bookRepository.findAll().stream()
+                    .map(BookDto::from)
+                    .toList();
+        }
+        public BookDto getById(Long id) {
+            return bookRepository.findById(id)
+                    .map(BookDto::from)
+                    .orElseThrow(() -> new BusinessException(404, "书籍不存在: id=" + id));
+        }
+    }
+
+    @Service
+    public class UserServiceImpl implements UserService {
+        @Transactional
+        public UserDto register(UserRegisterRequest req) {
+            if (userRepository.existsByUsername(req.getUsername())) {
+                throw new BusinessException(409, "用户名已存在");
+            }
+            ...
+            User user = new User();   // 构造 Entity
+            user.setUsername(req.getUsername());
+            user.setPassword(passwordEncoder.encode(req.getPassword()));
+            ...
+            return UserDto.from(userRepository.save(user));  // ★ 返回 DTO
+        }
+    }
+
+
+★ 5.4  Controller（只依赖 DTO）
+
+    @RestController @RequestMapping("/api/v1")
+    public class BookController {
+        @GetMapping("/books")
+        public ApiResponse<List<BookDto>> listAll() {
+            return ApiResponse.ok(bookService.listAll());
+        }
+        @GetMapping("/book/{id}")
+        public ApiResponse<BookDto> getOne(@PathVariable Long id) {
+            return ApiResponse.ok(bookService.getById(id));
+        }
+    }
+
+    @RestController @RequestMapping("/api/v1/users")
+    public class UserController {
+        @PostMapping("/register")
+        public ResponseEntity<ApiResponse<LoginResponse>> register(
+                @Valid @RequestBody UserRegisterRequest request, ...) {
+            UserDto saved = userService.register(request);            // ★ DTO
+            LoginResponse resp = new LoginResponse(
+                    null, saved.getId(), saved.getUsername(),
+                    saved.getEmail(), saved.getNickname(), saved.getRole());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.ok("注册成功", resp));
+        }
+    }
+
+
+================================================================
+六、数据库设计（不变）
 ================================================================
 
 数据库：bookstore  (CHARSET=utf8mb4)
@@ -123,6 +306,7 @@ users 表：
     email        VARCHAR(128)  UNIQUE
     phone        VARCHAR(32)
     nickname     VARCHAR(64)
+    role         VARCHAR(32)
     created_at   DATETIME
 
 books 表：
@@ -134,11 +318,12 @@ books 表：
     publisher, publish_date, pages, isbn, binding
     cover_img, cover_emoji
 
-启动时 schema.sql 自动建表、data.sql 自动插入 8 条样例（与前端 Data.js 一致）。
+application.properties 中 spring.jpa.hibernate.ddl-auto=update，
+启动时 Hibernate 会自动校对表结构，schema.sql / data.sql 用于初始化数据。
 
 
 ================================================================
-四、启动步骤
+七、启动步骤
 ================================================================
 
 1) 启动 MySQL，并执行：
@@ -161,7 +346,7 @@ books 表：
 
 
 ================================================================
-五、Postman 测试用例
+八、Postman 测试用例
 ================================================================
 
 【接口 1】 用户注册   POST  http://localhost:8080/api/v1/users/register
@@ -178,9 +363,20 @@ books 表：
     {
       "code": 200,
       "message": "注册成功",
-      "data": { "id": 1, "username": "alice", "email": "alice@example.com", ... }
+      "data": {
+        "token":   null,
+        "id":      2,
+        "username":"alice",
+        "email":   "alice@example.com",
+        "nickname":"Alice",
+        "role":    "USER"
+      }
     }
-  数据库验证：SELECT * FROM users; 可以看到新插入的记录。
+  数据库验证：SELECT id, username, email FROM users; 能看到新插入的 alice 记录。
+
+  ⚠️ 同样的请求第二次发送会得到 HTTP 4xx + {"code":409,"message":"用户名已存在"}
+     —— 证明 Service 层走的是 UserRepository.existsByUsername 这条 JPA 派生查询。
+
 
 【接口 2】 获取所有书籍   GET  http://localhost:8080/api/v1/books
   无需 Body
@@ -188,8 +384,14 @@ books 表：
     {
       "code": 200,
       "message": "success",
-      "data": [ { "id":1, "title":"百年孤独", ... }, ... 共 8 条 ]
+      "data": [
+        { "id":1, "title":"百年孤独", "author":"加西亚·马尔克斯", "category":"文学小说", ... },
+        { "id":2, "title":"人类简史：从动物到上帝", "author":"尤瓦尔·赫拉利", ... },
+        ...   共 8 条
+      ]
     }
+  ⚠️ 注意：返回字段对应 **BookDto**，不会出现 Hibernate 代理对象 / 懒加载占位字段。
+
 
 【接口 3】 获取单本书籍   GET  http://localhost:8080/api/v1/book/4
   无需 Body
@@ -197,46 +399,46 @@ books 表：
     {
       "code": 200,
       "message": "success",
-      "data": { "id":4, "title":"三体（全集）", "author":"刘慈欣", ... }
+      "data": { "id":4, "title":"三体（全集）", "author":"刘慈欣",
+                "publisher":"重庆出版社", "isbn":"978-7-229-03026-9", ... }
     }
-  错误用例：GET /api/v1/book/9999 → HTTP 400 + {"code":404,"message":"书籍不存在: id=9999"}
+  错误用例：GET /api/v1/book/9999 → HTTP 4xx + {"code":404,"message":"书籍不存在: id=9999"}
 
 
 ================================================================
-六、需要截的图（按顺序粘贴进答题纸）
+九、需要截图（按顺序粘贴进答题纸）
 ================================================================
 
 ★ 图 1：项目目录结构（IDE 截图）
-    打开 IntelliJ IDEA 或 VS Code，左侧 Project Explorer 完全展开
-    backend/src/main/java/com/bookstore/ 目录（能看到 controller、service、
-    repository、entity、dto、exception、config 七个子包）。
-    截图范围包含 frontend/ 和 backend/ 两个根目录。
+    打开 IntelliJ IDEA / VS Code，左侧 Project Explorer 完全展开
+    backend/src/main/java/com/bookstore/，**重点圈出 dto 包内的
+    UserDto.java 与 BookDto.java**，体现“新增了 DTO 层”。
 
 ★ 图 2：MySQL 数据库与表
-    用 Navicat / DataGrip / 命令行 任一工具，截图显示：
+    用 Navicat / DataGrip / 命令行 截图：
       - 数据库 bookstore 存在
-      - 包含 users、books 两张表
-      - books 表的 8 条数据（SELECT id, title, author FROM books;）
+      - 包含 users、books 等表
+      - books 表 8 条数据（SELECT id, title, author FROM books;）
 
 ★ 图 3：Spring Boot 启动成功的控制台
     截 mvn spring-boot:run 启动日志，能看到：
+      "HikariPool-1 - Start completed"
       "Tomcat started on port 8080"
       "Started BookstoreApplication in x.x seconds"
 
 ★ 图 4：Postman 测试 POST /api/v1/users/register
-    显示请求行 (POST + URL)、Headers、Body(JSON) 以及右下角的响应：
+    显示请求行 (POST + URL)、Headers、Body(JSON) 与右下角响应：
       Status: 201 Created
-      Response Body: 包含 "注册成功" 和返回的 user 对象
-    （建议再截一张 SELECT * FROM users 的结果，证明数据已落库）
+      Response Body: "注册成功" + LoginResponse 字段（id/username/email/nickname/role）
+    建议再截一张 SELECT * FROM users 的结果，证明数据已落库。
 
 ★ 图 5：Postman 测试 GET /api/v1/books
-    显示请求行 (GET + URL) 和响应：
+    显示请求行 (GET + URL) 与响应：
       Status: 200 OK
-      Response Body: data 数组长度 8
-    可以滚动展开几条数据，能看到《百年孤独》《三体》等书名。
+      Response Body: data 数组长度 8，能看到《百年孤独》《三体》等书名。
 
 ★ 图 6：Postman 测试 GET /api/v1/book/4
-    显示请求行 (GET + URL=.../api/v1/book/4) 和响应：
+    显示请求行 (GET + URL=.../api/v1/book/4) 与响应：
       Status: 200 OK
       Response Body: title="三体（全集）"，author="刘慈欣"
 
