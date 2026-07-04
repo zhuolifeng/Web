@@ -13,7 +13,7 @@ function RegisterPage() {
     const result = await register({
       username: values.username,
       password: values.password,
-      email: values.email || undefined,
+      email: values.email,
       nickname: values.nickname || values.username,
     });
     if (result.success) {
@@ -61,9 +61,10 @@ function RegisterPage() {
           </Form.Item>
 
           <Form.Item name="email" rules={[
+            { required: true, message: '请输入邮箱' },
             { type: 'email', message: '请输入有效邮箱' },
           ]}>
-            <Input prefix={<MailOutlined />} placeholder="请输入邮箱（选填）" />
+            <Input prefix={<MailOutlined />} placeholder="请输入邮箱" />
           </Form.Item>
 
           <Form.Item>

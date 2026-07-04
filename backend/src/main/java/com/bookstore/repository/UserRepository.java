@@ -4,6 +4,7 @@ import com.bookstore.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -16,15 +17,14 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    /** 按用户名查询用户 —— 登录、注册时校验。 */
     Optional<User> findByUsername(String username);
 
-    /** 按邮箱查询用户 —— 注册 / 修改资料时校验。 */
     Optional<User> findByEmail(String email);
 
-    /** 用户名是否已存在（注册查重）。 */
     boolean existsByUsername(String username);
 
-    /** 邮箱是否已被注册（注册查重）。 */
     boolean existsByEmail(String email);
+
+    /** 按创建时间倒序查询全部用户（管理员后台） */
+    List<User> findAllByOrderByCreatedAtDesc();
 }

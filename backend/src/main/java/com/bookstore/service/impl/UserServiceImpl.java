@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 通过 Spring Data JPA 的 {@link UserRepository} 持久化用户，
@@ -46,6 +47,7 @@ public class UserServiceImpl implements UserService {
         user.setPhone(request.getPhone());
         user.setNickname(request.getNickname());
         user.setRole("USER");
+        user.setEnabled(true);
         user.setCreatedAt(LocalDateTime.now());
 
         return UserDto.from(userRepository.save(user));
@@ -57,6 +59,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new BusinessException(401, "用户名或密码错误"));
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BusinessException(401, "用户名或密码错误");
+        }
+        // 检查账户是否被禁用
+        if (!Boolean.TRUE.equals(user.getEnabled())) {
+            throw new BusinessException(403, "您的账号已经被禁用");
         }
         return UserDto.from(user);
     }
@@ -83,6 +89,27 @@ public class UserServiceImpl implements UserService {
             user.setEmail(email);
         }
         if (phone != null) user.setPhone(phone);
+        return UserDto.from(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserDto> listAll() {
+        return userRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(UserDto::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public UserDto toggleEnabled(Long userId, boolean enabled) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(404, "用户不存在"));
+        // 不允许禁用管理员自身
+        if ("ADMIN".equals(user.getRole()) && !enabled) {
+            throw new BusinessException(400, "不能禁用管理员账号");
+        }
+        user.setEnabled(enabled);
         return UserDto.from(userRepository.save(user));
     }
 }

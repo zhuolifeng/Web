@@ -8,12 +8,20 @@ import {
   LoginOutlined,
   LogoutOutlined,
   FileTextOutlined,
+  TeamOutlined,
+  BookOutlined,
+  BarChartOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 const { Header, Sider, Content, Footer } = Layout;
 
+/**
+ * 全局布局组件。
+ * 根据用户角色（ADMIN/USER）动态渲染不同的侧边栏菜单项。
+ */
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
@@ -21,6 +29,8 @@ function AppLayout() {
   const { cartCount } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
+
+  const isAdmin = user?.role === 'ADMIN';
 
   const getSelectedKey = () => {
     const path = location.pathname;
@@ -32,15 +42,32 @@ function AppLayout() {
     if (path === '/login') return 'login';
     if (path === '/register') return 'login';
     if (path === '/order') return 'order';
+    if (path === '/admin/users') return 'admin-users';
+    if (path === '/admin/books') return 'admin-books';
+    if (path === '/admin/orders') return 'admin-orders';
+    if (path === '/admin/statistics') return 'admin-statistics';
+    if (path === '/statistics') return 'my-statistics';
     return 'home';
   };
 
-  const menuItems = [
+  // 管理员专用菜单
+  const adminMenuItems = isAdmin ? [
+    { type: 'divider' },
     {
-      key: 'home',
-      icon: <HomeOutlined />,
-      label: '首页',
+      key: 'admin-group',
+      label: '管理后台',
+      type: 'group',
+      children: [
+        { key: 'admin-users', icon: <TeamOutlined />, label: '用户管理' },
+        { key: 'admin-books', icon: <BookOutlined />, label: '书籍管理' },
+        { key: 'admin-orders', icon: <UnorderedListOutlined />, label: '订单管理' },
+        { key: 'admin-statistics', icon: <BarChartOutlined />, label: '数据统计' },
+      ],
     },
+  ] : [];
+
+  const menuItems = [
+    { key: 'home', icon: <HomeOutlined />, label: '首页' },
     {
       key: 'cart',
       icon: (
@@ -52,28 +79,14 @@ function AppLayout() {
     },
     ...(isAuthenticated
       ? [
-          {
-            key: 'orders',
-            icon: <FileTextOutlined />,
-            label: '我的订单',
-          },
-          {
-            key: 'profile',
-            icon: <UserOutlined />,
-            label: user?.nickname || user?.username || '个人信息',
-          },
-          {
-            key: 'logout',
-            icon: <LogoutOutlined />,
-            label: '退出登录',
-          },
+          { key: 'orders', icon: <FileTextOutlined />, label: '我的订单' },
+          { key: 'my-statistics', icon: <BarChartOutlined />, label: '购书统计' },
+          { key: 'profile', icon: <UserOutlined />, label: user?.nickname || user?.username || '个人信息' },
+          ...adminMenuItems,
+          { key: 'logout', icon: <LogoutOutlined />, label: '退出登录' },
         ]
       : [
-          {
-            key: 'login',
-            icon: <LoginOutlined />,
-            label: '登录',
-          },
+          { key: 'login', icon: <LoginOutlined />, label: '登录' },
         ]
     ),
   ];
@@ -85,11 +98,16 @@ function AppLayout() {
       return;
     }
     const routes = {
-      home: '/',
-      cart: '/cart',
-      orders: '/orders',
-      profile: '/profile',
-      login: '/login',
+      'home': '/',
+      'cart': '/cart',
+      'orders': '/orders',
+      'profile': '/profile',
+      'login': '/login',
+      'my-statistics': '/statistics',
+      'admin-users': '/admin/users',
+      'admin-books': '/admin/books',
+      'admin-orders': '/admin/orders',
+      'admin-statistics': '/admin/statistics',
     };
     if (routes[key]) navigate(routes[key]);
   };
@@ -139,6 +157,11 @@ function AppLayout() {
                 >
                   {user?.nickname || user?.username}
                 </Button>
+                {isAdmin && (
+                  <Button onClick={() => navigate('/admin/statistics')}>
+                    管理后台
+                  </Button>
+                )}
                 <Button onClick={() => { logout(); navigate('/'); }}>
                   退出
                 </Button>

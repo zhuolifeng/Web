@@ -32,6 +32,7 @@ public class BookDto {
     private String binding;
     private String coverImg;
     private String coverEmoji;
+    private Integer stock;
 
     public BookDto() {}
 
@@ -58,6 +59,7 @@ public class BookDto {
         dto.binding = book.getBinding();
         dto.coverImg = book.getCoverImg();
         dto.coverEmoji = book.getCoverEmoji();
+        dto.stock = book.getStock();
         return dto;
     }
 
@@ -120,4 +122,7 @@ public class BookDto {
 
     public String getCoverEmoji() { return coverEmoji; }
     public void setCoverEmoji(String coverEmoji) { this.coverEmoji = coverEmoji; }
+
+    public Integer getStock() { return stock; }
+    public void setStock(Integer stock) { this.stock = stock; }
 }

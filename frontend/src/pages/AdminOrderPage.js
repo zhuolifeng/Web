@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Card, Typography, Tag, Spin, Empty, Button, Divider, DatePicker, Input, Space, message,
+  Card, Typography, Tag, Spin, Empty, Divider, DatePicker, Input, Space, Button, message,
 } from 'antd';
-import { FileTextOutlined, ShoppingOutlined, SearchOutlined } from '@ant-design/icons';
-import { orderService } from '../services/orderService';
+import { UnorderedListOutlined, SearchOutlined } from '@ant-design/icons';
+import { adminService } from '../services/adminService';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 /**
- * 订单列表页：展示当前用户的所有订单，支持按日期范围和书名搜索。
+ * 管理员 - 订单管理页面：展示所有用户的订单，支持按日期和书名搜索。
  */
-function OrderListPage() {
+function AdminOrderPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState(null);
@@ -20,15 +20,13 @@ function OrderListPage() {
 
   const fetchOrders = (params = {}) => {
     setLoading(true);
-    orderService.list(params)
+    adminService.listAllOrders(params)
       .then((res) => setOrders(res.data || []))
       .catch((err) => message.error(err.message || '获取订单失败'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  useEffect(() => { fetchOrders(); }, []);
 
   const handleSearch = () => {
     const params = {};
@@ -51,10 +49,9 @@ function OrderListPage() {
   return (
     <>
       <Title level={3} className="section-title">
-        <FileTextOutlined /> 我的订单
+        <UnorderedListOutlined /> 全部订单
       </Title>
 
-      {/* 搜索过滤区域 */}
       <Card style={{ marginBottom: 16 }} size="small">
         <Space wrap>
           <RangePicker
@@ -75,13 +72,7 @@ function OrderListPage() {
       </Card>
 
       {orders.length === 0 ? (
-        <div className="empty-wrapper">
-          <Empty description="没有找到订单">
-            <Link to="/">
-              <Button type="primary" icon={<ShoppingOutlined />}>去选书</Button>
-            </Link>
-          </Empty>
-        </div>
+        <Empty description="没有找到订单" />
       ) : (
         orders.map(order => (
           <Card key={order.id} className="order-card-spaced">
@@ -111,7 +102,7 @@ function OrderListPage() {
                     <Text strong>{item.title}</Text>
                   </Link>
                   <br />
-                  <Text type="secondary" className="cart-author">{item.author}</Text>
+                  <Text type="secondary">{item.author}</Text>
                 </div>
                 <div className="order-item-qty">
                   <Text>&yen;{Number(item.price).toFixed(2)}</Text>
@@ -168,8 +159,7 @@ function formatDate(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
-       + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default OrderListPage;
+export default AdminOrderPage;

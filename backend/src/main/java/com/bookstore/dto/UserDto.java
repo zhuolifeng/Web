@@ -20,6 +20,7 @@ public class UserDto {
     private String phone;
     private String nickname;
     private String role;
+    private Boolean enabled;
     private LocalDateTime createdAt;
 
     public UserDto() {}
@@ -34,6 +35,7 @@ public class UserDto {
         dto.phone = user.getPhone();
         dto.nickname = user.getNickname();
         dto.role = user.getRole();
+        dto.enabled = user.getEnabled();
         dto.createdAt = user.getCreatedAt();
         return dto;
     }
@@ -55,6 +57,9 @@ public class UserDto {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public Boolean getEnabled() { return enabled; }
+    public void setEnabled(Boolean enabled) { this.enabled = enabled; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

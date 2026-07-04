@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/** Spring Data JPA 仓储 —— 购物车条目的数据访问接口。 */
 @Repository
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
 

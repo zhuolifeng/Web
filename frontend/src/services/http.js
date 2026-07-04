@@ -46,9 +46,16 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   }
 
   if (res.status === 401) {
+    // 403 表示被禁用或无权限，不自动跳转登录页
     handleUnauthorized();
     const err = new Error(payload?.message || '未登录或登录已过期');
     err.code = 401;
+    throw err;
+  }
+
+  if (res.status === 403) {
+    const err = new Error(payload?.message || '无权限访问该资源');
+    err.code = 403;
     throw err;
   }
 

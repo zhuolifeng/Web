@@ -29,7 +29,7 @@ const { Title, Paragraph, Text } = Typography;
 function BookDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart, cartItems, updateQuantity } = useCart();
   const { isAuthenticated } = useAuth();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +89,12 @@ function BookDetailPage() {
       return;
     }
     try {
-      await addToCart(book.id, quantity);
+      const existing = cartItems.find(item => item.bookId === book.id);
+      if (existing) {
+        await updateQuantity(existing.id, quantity);
+      } else {
+        await addToCart(book.id, quantity);
+      }
       navigate('/order');
     } catch (err) {
       message.error(err.message || '操作失败');
@@ -146,7 +151,7 @@ function BookDetailPage() {
                 </>
               )}
               <Tag color="green" className="detail-stock-tag">
-                <CheckCircleOutlined /> 库存充足
+                <CheckCircleOutlined /> 库存：{book.stock ?? '充足'}
               </Tag>
             </div>
 
@@ -194,6 +199,7 @@ function BookDetailPage() {
           {book.isbn && <Descriptions.Item label="ISBN">{book.isbn}</Descriptions.Item>}
           {book.binding && <Descriptions.Item label="装帧">{book.binding}</Descriptions.Item>}
           {book.category && <Descriptions.Item label="分类">{book.category}</Descriptions.Item>}
+          <Descriptions.Item label="库存">{book.stock ?? '-'}</Descriptions.Item>
         </Descriptions>
       </Card>
     </>

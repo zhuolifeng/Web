@@ -8,11 +8,19 @@ import com.bookstore.service.AuditService;
 import com.bookstore.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
+/**
+ * 订单相关 REST 接口。
+ * <p>
+ * 普通用户可查看/搜索自己的订单，以及查看个人购书统计。
+ */
 @RestController
 @RequestMapping("/api/v1/orders")
 public class OrderController {
@@ -25,7 +33,7 @@ public class OrderController {
         this.auditService = auditService;
     }
 
-    /** POST /api/v1/orders — submit a new order from current cart */
+    /** POST /api/v1/orders — 从购物车下单 */
     @PostMapping
     public ApiResponse<OrderDto> create(@Valid @RequestBody OrderCreateRequest body,
                                         HttpServletRequest request) {
@@ -38,18 +46,35 @@ public class OrderController {
         return ApiResponse.ok("下单成功", dto);
     }
 
-    /** GET /api/v1/orders — current user's order list */
+    /** GET /api/v1/orders — 当前用户的订单列表（支持日期和书名过滤） */
     @GetMapping
-    public ApiResponse<List<OrderDto>> list(HttpServletRequest request) {
+    public ApiResponse<List<OrderDto>> list(
+            HttpServletRequest request,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String bookTitle) {
         Long userId = requireUserId(request);
+        if (startDate != null || endDate != null || (bookTitle != null && !bookTitle.isBlank())) {
+            return ApiResponse.ok(orderService.searchByUser(userId, startDate, endDate, bookTitle));
+        }
         return ApiResponse.ok(orderService.listByUser(userId));
     }
 
-    /** GET /api/v1/orders/{id} — order detail */
+    /** GET /api/v1/orders/{id} — 订单详情 */
     @GetMapping("/{id}")
     public ApiResponse<OrderDto> detail(@PathVariable Long id, HttpServletRequest request) {
         Long userId = requireUserId(request);
         return ApiResponse.ok(orderService.getDetail(userId, id));
+    }
+
+    /** GET /api/v1/orders/my-stats — 当前用户的购书统计 */
+    @GetMapping("/my-stats")
+    public ApiResponse<Map<String, Object>> personalStats(
+            HttpServletRequest request,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = requireUserId(request);
+        return ApiResponse.ok(orderService.personalStats(userId, startDate, endDate));
     }
 
     private Long requireUserId(HttpServletRequest request) {

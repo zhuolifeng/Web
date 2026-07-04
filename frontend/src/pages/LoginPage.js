@@ -5,6 +5,10 @@ import { useAuth } from '../context/AuthContext';
 
 const { Title, Paragraph, Text } = Typography;
 
+/**
+ * 登录页面。
+ * 校验用户名和密码是否输入，对被禁用用户给出明确提示。
+ */
 function LoginPage() {
   const { login, loading } = useAuth();
   const navigate = useNavigate();

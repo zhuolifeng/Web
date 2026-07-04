@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone        VARCHAR(32)  DEFAULT NULL,
     nickname     VARCHAR(64)  DEFAULT NULL,
     role         VARCHAR(32)  DEFAULT 'USER',
+    enabled      TINYINT(1)   NOT NULL DEFAULT 1,
     created_at   DATETIME     DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_users_username (username),
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS books (
     binding         VARCHAR(32)   DEFAULT NULL,
     cover_img       VARCHAR(255)  DEFAULT NULL,
     cover_emoji     VARCHAR(16)   DEFAULT NULL,
+    stock           INT           NOT NULL DEFAULT 100,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

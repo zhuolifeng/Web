@@ -7,9 +7,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 订单数据传输对象。
+ * 包含订单基本信息和订单明细列表，用于前端展示。
+ */
 public class OrderDto {
 
     private Long id;
+    private Long userId;
     private String orderNo;
     private String receiver;
     private String phone;
@@ -26,6 +31,7 @@ public class OrderDto {
     public static OrderDto from(Order order, List<OrderItem> items) {
         OrderDto dto = new OrderDto();
         dto.id = order.getId();
+        dto.userId = order.getUserId();
         dto.orderNo = order.getOrderNo();
         dto.receiver = order.getReceiver();
         dto.phone = order.getPhone();
@@ -41,6 +47,9 @@ public class OrderDto {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
     public String getOrderNo() { return orderNo; }
     public void setOrderNo(String orderNo) { this.orderNo = orderNo; }

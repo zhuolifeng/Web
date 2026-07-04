@@ -72,6 +72,10 @@ public class Book {
     @Column(name = "cover_emoji", length = 16)
     private String coverEmoji;
 
+    // 库存量，下单时扣减
+    @Column(nullable = false)
+    private Integer stock = 100;
+
     public Book() {}
 
     public Long getId() { return id; }
@@ -133,4 +137,7 @@ public class Book {
 
     public String getCoverEmoji() { return coverEmoji; }
     public void setCoverEmoji(String coverEmoji) { this.coverEmoji = coverEmoji; }
+
+    public Integer getStock() { return stock; }
+    public void setStock(Integer stock) { this.stock = stock; }
 }

@@ -3,6 +3,9 @@ package com.bookstore.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+/**
+ * 订单明细实体。快照了下单时的书名、价格等信息，不随书籍后续修改而变化。
+ */
 @Entity
 @Table(name = "order_item")
 public class OrderItem {

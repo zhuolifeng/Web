@@ -3,6 +3,8 @@ package com.bookstore.service;
 import com.bookstore.dto.UserDto;
 import com.bookstore.dto.UserRegisterRequest;
 
+import java.util.List;
+
 /**
  * 用户业务接口。
  * <p>
@@ -12,15 +14,21 @@ import com.bookstore.dto.UserRegisterRequest;
  */
 public interface UserService {
 
-    /** 注册新用户。对应 POST /api/v1/users/register */
+    /** 注册新用户 */
     UserDto register(UserRegisterRequest request);
 
-    /** 校验用户名 + 密码，成功返回 UserDto。 */
+    /** 校验用户名 + 密码，检查是否被禁用，成功返回 UserDto */
     UserDto login(String username, String password);
 
-    /** 按 id 查询用户。 */
+    /** 按 id 查询用户 */
     UserDto getById(Long id);
 
-    /** 更新昵称 / 邮箱 / 手机号。 */
+    /** 更新昵称 / 邮箱 / 手机号 */
     UserDto updateProfile(Long userId, String nickname, String email, String phone);
+
+    /** 查询全部用户列表（管理员用） */
+    List<UserDto> listAll();
+
+    /** 禁用或解禁用户（管理员用） */
+    UserDto toggleEnabled(Long userId, boolean enabled);
 }

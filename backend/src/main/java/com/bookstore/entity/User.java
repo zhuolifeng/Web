@@ -35,13 +35,17 @@ public class User {
     @Column(length = 32)
     private String role;
 
+    // 账户是否启用，管理员可通过后台禁用/解禁用户
+    @Column(nullable = false)
+    private Boolean enabled = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     public User() {}
 
     public User(Long id, String username, String password, String email,
-                String phone, String nickname, String role, LocalDateTime createdAt) {
+                String phone, String nickname, String role, Boolean enabled, LocalDateTime createdAt) {
         this.id = id;
         this.username = username;
         this.password = password;
@@ -49,6 +53,7 @@ public class User {
         this.phone = phone;
         this.nickname = nickname;
         this.role = role;
+        this.enabled = enabled;
         this.createdAt = createdAt;
     }
 
@@ -72,6 +77,9 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public Boolean getEnabled() { return enabled; }
+    public void setEnabled(Boolean enabled) { this.enabled = enabled; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

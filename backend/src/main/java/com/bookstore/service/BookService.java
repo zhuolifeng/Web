@@ -11,9 +11,21 @@ import java.util.List;
  */
 public interface BookService {
 
-    /** 列出所有书籍 —— 对应 GET /api/v1/books */
+    /** 列出所有书籍 */
     List<BookDto> listAll();
 
-    /** 按主键查单本 —— 对应 GET /api/v1/book/{id} */
+    /** 按主键查单本 */
     BookDto getById(Long id);
+
+    /** 按关键词搜索书籍（书名/作者/分类模糊匹配） */
+    List<BookDto> search(String keyword);
+
+    /** 新增书籍（管理员） */
+    BookDto create(BookDto dto);
+
+    /** 更新书籍信息（管理员） */
+    BookDto update(Long id, BookDto dto);
+
+    /** 删除书籍（管理员） */
+    void delete(Long id);
 }

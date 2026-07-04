@@ -3,6 +3,9 @@ package com.bookstore.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+/**
+ * 购物车条目实体。同一用户同一书籍只能有一条记录（唯一约束）。
+ */
 @Entity
 @Table(name = "cart_item",
         uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "book_id"}))

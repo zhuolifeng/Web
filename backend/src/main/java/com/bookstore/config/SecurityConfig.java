@@ -64,9 +64,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/books").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/book/**").permitAll()
                 .requestMatchers("/images/**", "/css/**", "/js/**", "/*.html").permitAll()
+                .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/v1/cart/**").authenticated()
                 .requestMatchers("/api/v1/orders/**").authenticated()
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex

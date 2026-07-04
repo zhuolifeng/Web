@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 订单实体。包含收货信息、支付方式、订单状态和总金额。
+ */
 @Entity
 @Table(name = "orders")
 public class Order {
