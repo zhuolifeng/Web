@@ -1,0 +1,8 @@
+[
+  {"id":"SIM-001","title":"微服务架构入门：从单体到服务拆分","author":"模拟作者 A","description":"面向首次接触微服务的开发者，介绍服务拆分、API 网关、服务发现和部署。","tags":["微服务","入门","架构","后端"],"price":"69.00","simulated":true},
+  {"id":"SIM-002","title":"微服务实践：可观测性与可靠性","author":"模拟作者 B","description":"面向有后端经验的读者，讲解微服务链路追踪、日志、监控、熔断和故障恢复。","tags":["微服务","进阶","分布式","可靠性"],"price":"89.00","simulated":true},
+  {"id":"SIM-003","title":"分布式系统设计基础","author":"模拟作者 C","description":"讲解一致性、消息队列、缓存和分布式事务，适合系统设计学习。","tags":["分布式","系统设计","架构"],"price":"79.00","simulated":true},
+  {"id":"SIM-004","title":"Python 编程起步","author":"模拟作者 D","description":"从变量、函数到数据处理，面向零基础 Python 学习者。","tags":["Python","编程","入门"],"price":"49.00","simulated":true},
+  {"id":"SIM-005","title":"星海来信：科幻短篇选","author":"模拟作者 E","description":"适合喜欢宇宙探索、未来社会和短篇小说的读者。","tags":["科幻","小说","文学"],"price":"39.00","simulated":true},
+  {"id":"SIM-006","title":"Java 后端开发实践","author":"模拟作者 F","description":"围绕 Spring Boot、REST API、数据库和后端应用开发展开。","tags":["Java","后端","Spring Boot","编程"],"price":"75.00","simulated":true}
+]

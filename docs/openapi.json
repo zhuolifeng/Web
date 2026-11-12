@@ -1,0 +1,1254 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "E-BookStore 图书管理 REST API",
+    "version": "1.0.0",
+    "description": "这是目标接口契约，用于 Swagger 导入及后续后端实现，不代表仓库当前已完整实现或可直接调用。已核对 BookDto、Book.java、BookController、BookServiceImpl、SecurityConfig 与现有登录控制器，仅生成设计文档，未修改后端代码。设计包含六项图书操作：公开分页查询和详情、管理员创建/完整替换/删除/绝对库存设置；统一响应、严格输入校验，保留 price/pages 字符串类型。仓库现状：GET /api/v1/books 仅支持 keyword，返回列表而非分页对象；详情为 GET /api/v1/book/{id}；现有写路径为 /api/v1/admin/books 及 /api/v1/admin/books/{id}；独立库存接口尚未实现。现有创建和删除使用 code=200 包装响应，目标为 201+Location 和 204 无体；分页、过滤、严格校验、完整替换、空可选字段省略、目标路径 ROLE_ADMIN 保护及订单引用冲突处理均需按本契约实现和验证。登录沿用现有 POST /api/v1/users/login，仅说明其用途，不新增登录操作。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "目标服务地址；导入本文不表示六项目标操作已可用。"
+    }
+  ],
+  "tags": [
+    {
+      "name": "图书",
+      "description": "图书管理目标接口契约。"
+    }
+  ],
+  "paths": {
+    "/api/v1/books": {
+      "get": {
+        "tags": [
+          "图书"
+        ],
+        "operationId": "listBooks",
+        "summary": "分页查询图书",
+        "description": "公开接口。category 精确匹配 AND（title 包含 keyword OR author 包含 keyword），未提供的过滤条件不限制结果。先过滤，再按 id 升序排序、分页。空 category 或 keyword 返回 400。无结果 totalElements=0、totalPages=0；超出末页 items=[]。",
+        "security": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "页码，从 1 开始；超出末页返回空 items。",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "description": "每页数量，范围 1–100。",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "example": 20
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "description": "可选，分类精确匹配；提供空字符串返回 400；与 keyword 取交集。",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "example": "科幻"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "description": "可选，对书名或作者执行字面子串匹配（两字段取并集）；与 category 取交集。提供空字符串返回 400。",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "example": "三体"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookPageResponse"
+                },
+                "examples": {
+                  "oneBook": {
+                    "summary": "第 1 页，1 条结果",
+                    "value": {
+                      "code": 200,
+                      "message": "success",
+                      "data": {
+                        "items": [
+                          {
+                            "id": 1,
+                            "title": "三体",
+                            "author": "刘慈欣",
+                            "category": "科幻",
+                            "price": "59.80",
+                            "stock": 100
+                          }
+                        ],
+                        "page": 1,
+                        "size": 20,
+                        "totalElements": 1,
+                        "totalPages": 1
+                      }
+                    }
+                  },
+                  "noResults": {
+                    "summary": "无匹配结果",
+                    "value": {
+                      "code": 200,
+                      "message": "success",
+                      "data": {
+                        "items": [],
+                        "page": 1,
+                        "size": 20,
+                        "totalElements": 0,
+                        "totalPages": 0
+                      }
+                    }
+                  },
+                  "beyondLastPage": {
+                    "summary": "超出末页，保留实际总数",
+                    "value": {
+                      "code": 200,
+                      "message": "success",
+                      "data": {
+                        "items": [],
+                        "page": 2,
+                        "size": 20,
+                        "totalElements": 1,
+                        "totalPages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "图书"
+        ],
+        "operationId": "createBook",
+        "summary": "创建图书",
+        "description": "目标写接口，要求有效 bearer JWT 且具有 ROLE_ADMIN。服务端生成 id；不接受客户端 id、未知字段或 null。不定义 ISBN 唯一约束。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "application/json；整个请求体以及所有字段均不得为 null。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              },
+              "example": {
+                "title": "三体",
+                "author": "刘慈欣",
+                "category": "科幻",
+                "price": "59.80",
+                "stock": 100
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功；code=201。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedBookResponse"
+                },
+                "example": {
+                  "code": 201,
+                  "message": "创建成功",
+                  "data": {
+                    "id": 1,
+                    "title": "三体",
+                    "author": "刘慈欣",
+                    "category": "科幻",
+                    "price": "59.80",
+                    "stock": 100
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "description": "新建图书详情资源地址。",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "example": "/api/v1/books/1"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/books/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "图书 ID，必须为大于等于 1 的 int64；格式或范围不合法返回 400。",
+          "schema": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "图书"
+        ],
+        "operationId": "getBook",
+        "summary": "查询图书详情",
+        "description": "公开接口。返回 Book，空可选字段省略。",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "查询成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                },
+                "example": {
+                  "code": 200,
+                  "message": "success",
+                  "data": {
+                    "id": 1,
+                    "title": "三体",
+                    "author": "刘慈欣",
+                    "category": "科幻",
+                    "price": "59.80",
+                    "stock": 100
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "图书"
+        ],
+        "operationId": "replaceBook",
+        "summary": "完整替换图书",
+        "description": "要求有效 bearer JWT 且具有 ROLE_ADMIN。对已存在图书完整替换，保留路径 id；缺少必填字段返回 400，未提供的可选字段清空。不接受请求 id、未知字段或 null；不存在返回 404，不执行创建。相同请求重复提交具有幂等语义。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "application/json；整个请求体以及所有字段均不得为 null。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceBookRequest"
+              },
+              "example": {
+                "title": "三体",
+                "author": "刘慈欣",
+                "category": "科幻",
+                "price": "59.80",
+                "stock": 100
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "替换成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                },
+                "example": {
+                  "code": 200,
+                  "message": "替换成功",
+                  "data": {
+                    "id": 1,
+                    "title": "三体",
+                    "author": "刘慈欣",
+                    "category": "科幻",
+                    "price": "59.80",
+                    "stock": 100
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "图书"
+        ],
+        "operationId": "deleteBook",
+        "summary": "删除图书",
+        "description": "要求有效 bearer JWT 且具有 ROLE_ADMIN。被订单引用返回 409；不存在返回 404。成功返回 204，无响应体，不返回 JSON 包装。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "删除成功；无响应体。"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/books/{id}/stock": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "图书 ID，必须为大于等于 1 的 int64；格式或范围不合法返回 400。",
+          "schema": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "example": 1
+        }
+      ],
+      "put": {
+        "tags": [
+          "图书"
+        ],
+        "operationId": "setBookStock",
+        "summary": "设置图书绝对库存",
+        "description": "要求有效 bearer JWT 且具有 ROLE_ADMIN。请求只包含 stock，表示绝对库存值而非增减量；重复设置相同值具有幂等语义，不影响其他字段。返回更新后的完整 Book。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "application/json；整个请求体以及所有字段均不得为 null。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockUpdateRequest"
+              },
+              "example": {
+                "stock": 80
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "设置成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                },
+                "example": {
+                  "code": 200,
+                  "message": "库存设置成功",
+                  "data": {
+                    "id": 1,
+                    "title": "三体",
+                    "author": "刘慈欣",
+                    "category": "科幻",
+                    "price": "59.80",
+                    "stock": 80
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "使用现有 POST /api/v1/users/login 获取 JWT，通过 Authorization: Bearer <token> 发送。所有写操作必须具有 ROLE_ADMIN；GET 公开。不提供真实 JWT 或密钥示例。"
+      }
+    },
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "author",
+          "category",
+          "price",
+          "stock"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "example": "三体"
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "example": "刘慈欣"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "example": "科幻"
+          },
+          "badge": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "stars": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "ratingNum": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "ratingCount": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "price": {
+            "type": "string",
+            "maxLength": 32,
+            "example": "59.80",
+            "pattern": "^[0-9]+(\\.[0-9]{1,2})?$",
+            "description": "非负十进制金额字符串，最多两位小数；不含正负号、货币符号、空白或指数。"
+          },
+          "originalPrice": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "intro": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "authorBio": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "publisher": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "publishDate": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "pages": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "页数沿用仓库 string 类型，不转换为数值。"
+          },
+          "isbn": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "沿用仓库字符串字段，不定义 ISBN 唯一约束。"
+          },
+          "binding": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "coverImg": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "coverEmoji": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "example": 100
+          }
+        },
+        "description": "与 BookDto 字段及类型一致的目标响应模型。必填字段非 null；可选字段为 null 或空字符串时省略。",
+        "example": {
+          "id": 1,
+          "title": "三体",
+          "author": "刘慈欣",
+          "category": "科幻",
+          "price": "59.80",
+          "stock": 100
+        }
+      },
+      "CreateBookRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "author",
+          "category",
+          "price",
+          "stock"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "example": "三体"
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "example": "刘慈欣"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "example": "科幻"
+          },
+          "badge": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "stars": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "ratingNum": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "ratingCount": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "price": {
+            "type": "string",
+            "maxLength": 32,
+            "example": "59.80",
+            "pattern": "^[0-9]+(\\.[0-9]{1,2})?$",
+            "description": "非负十进制金额字符串，最多两位小数；不含正负号、货币符号、空白或指数。"
+          },
+          "originalPrice": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "intro": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "authorBio": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "publisher": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "publishDate": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "pages": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "页数沿用仓库 string 类型，不转换为数值。"
+          },
+          "isbn": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "沿用仓库字符串字段，不定义 ISBN 唯一约束。"
+          },
+          "binding": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "coverImg": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "coverEmoji": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "example": 100
+          }
+        },
+        "description": "创建请求：不接受 id、未知字段或任何字段的 null 值；省略或传空字符串的可选字段保存为空，响应省略。",
+        "example": {
+          "title": "三体",
+          "author": "刘慈欣",
+          "category": "科幻",
+          "price": "59.80",
+          "stock": 100
+        }
+      },
+      "ReplaceBookRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "author",
+          "category",
+          "price",
+          "stock"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "example": "三体"
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "example": "刘慈欣"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "example": "科幻"
+          },
+          "badge": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "stars": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "ratingNum": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "ratingCount": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "price": {
+            "type": "string",
+            "maxLength": 32,
+            "example": "59.80",
+            "pattern": "^[0-9]+(\\.[0-9]{1,2})?$",
+            "description": "非负十进制金额字符串，最多两位小数；不含正负号、货币符号、空白或指数。"
+          },
+          "originalPrice": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "intro": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "authorBio": {
+            "type": "string",
+            "description": "Book.java 使用 TEXT，未声明字符数上限，本契约不额外指定 maxLength。"
+          },
+          "publisher": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "publishDate": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "pages": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "页数沿用仓库 string 类型，不转换为数值。"
+          },
+          "isbn": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "沿用仓库字符串字段，不定义 ISBN 唯一约束。"
+          },
+          "binding": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "coverImg": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "coverEmoji": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "example": 100
+          }
+        },
+        "description": "完整替换请求：不接受 id、未知字段或任何字段的 null 值。未提供或传空字符串的可选字段清空，响应省略；必填字段必须全部提供。",
+        "example": {
+          "title": "三体",
+          "author": "刘慈欣",
+          "category": "科幻",
+          "price": "59.80",
+          "stock": 100
+        }
+      },
+      "StockUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stock"
+        ],
+        "properties": {
+          "stock": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "example": 100
+          }
+        },
+        "description": "仅接受 stock，必须提供非 null 的绝对库存值；重复设置同值具有幂等语义，不影响其他字段。",
+        "example": {
+          "stock": 80
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              400,
+              401,
+              403,
+              404,
+              409,
+              500
+            ],
+            "description": "必须与 HTTP 状态码一致。"
+          },
+          "message": {
+            "type": "string",
+            "description": "可读错误说明。"
+          },
+          "data": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ],
+            "description": "固定为 JSON null；type 与 nullable 组合遵循 OpenAPI 3.0。"
+          }
+        },
+        "description": "所有错误响应均包含 code、message、data，data 固定为 null。",
+        "example": {
+          "code": 400,
+          "message": "请求参数不合法",
+          "data": null
+        }
+      },
+      "BookPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "size",
+          "totalElements",
+          "totalPages"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Book"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "example": 1
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 100,
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "example": 1
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "example": 1
+          }
+        },
+        "description": "先按 category 和 keyword 交集过滤，再按 id 升序分页；totalElements 为过滤后的总数，totalPages=ceil(totalElements/size)。无结果时二者均为 0；超出末页时 items=[]，总数保持实际值。"
+      },
+      "BookResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              200
+            ],
+            "description": "与 HTTP 状态码一致。"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Book"
+          }
+        },
+        "example": {
+          "code": 200,
+          "message": "success",
+          "data": {
+            "id": 1,
+            "title": "三体",
+            "author": "刘慈欣",
+            "category": "科幻",
+            "price": "59.80",
+            "stock": 100
+          }
+        }
+      },
+      "CreatedBookResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              201
+            ],
+            "description": "与 HTTP 状态码一致。"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Book"
+          }
+        },
+        "example": {
+          "code": 201,
+          "message": "success",
+          "data": {
+            "id": 1,
+            "title": "三体",
+            "author": "刘慈欣",
+            "category": "科幻",
+            "price": "59.80",
+            "stock": 100
+          }
+        }
+      },
+      "BookPageResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              200
+            ],
+            "description": "与 HTTP 状态码一致。"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/BookPage"
+          }
+        },
+        "example": {
+          "code": 200,
+          "message": "success",
+          "data": {
+            "items": [
+              {
+                "id": 1,
+                "title": "三体",
+                "author": "刘慈欣",
+                "category": "科幻",
+                "price": "59.80",
+                "stock": 100
+              }
+            ],
+            "page": 1,
+            "size": 20,
+            "totalElements": 1,
+            "totalPages": 1
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求不合法：参数超出范围、空分类或空关键词、JSON 格式错误、字段缺失、未知字段、请求携带 id 或 null、金额格式错误等。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        400
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "code": 400,
+              "message": "请求参数不合法",
+              "data": null
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未提供有效 JWT，或 JWT 无效、已过期。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        401
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "code": 401,
+              "message": "未登录或登录已过期",
+              "data": null
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "已认证但不具备 ROLE_ADMIN。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        403
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "code": 403,
+              "message": "需要 ROLE_ADMIN 权限",
+              "data": null
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "路径 id 合法，但对应图书不存在。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        404
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "code": 404,
+              "message": "图书不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "图书被订单引用，拒绝删除。此状态不表示 ISBN 重复。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        409
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "code": 409,
+              "message": "图书被订单引用，无法删除",
+              "data": null
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "服务器内部错误；不向客户端暴露堆栈、SQL 或密钥。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        500
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "code": 500,
+              "message": "服务器内部错误",
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}

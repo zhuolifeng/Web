@@ -1,0 +1,124 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JWT 与虚拟线程实际 HTTP 验收</title><style>
+body{font-family:system-ui,sans-serif;background:#f3f6fa;color:#172b4d;max-width:1200px;margin:30px auto;padding:0 20px}
+h1{font-size:28px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}article{background:white;border:1px solid #dbe3ef;border-radius:14px;padding:20px}
+h2{font-size:18px;margin:0}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.status{background:#edf2ff;padding:6px 10px;border-radius:7px;white-space:nowrap;font-weight:700}
+.pass{color:#067647;font-weight:bold}.fail{color:#b42318}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;padding:12px;font-size:12px;line-height:1.5}
+small{color:#52616b} @media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style><h1>JWT 无状态认证 + Web 虚拟线程验收</h1><p>实际请求地址：http://127.0.0.1:8081 · 2026-10-25T07:05:35.771417+00:00</p><p>本页由实际 HTTP 请求结果生成，已隐藏 Token。前两张卡片用于截取 401 与 200 验收图。</p><div class="grid"><article><div class="row"><h2>未携带 Token：401 拦截</h2>
+<span class="status">HTTP 401</span></div><p>GET /api/books/1</p>
+<p class="pass">PASS · expected 401</p>
+<pre>{
+  &quot;responseHeaders&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json;charset=UTF-8&quot;,
+    &quot;Www-Authenticate&quot;: &quot;Bearer&quot;,
+    &quot;X-Java-Version&quot;: &quot;24.0.1&quot;,
+    &quot;X-Request-Thread-Name&quot;: &quot;tomcat-handler-1&quot;,
+    &quot;X-Request-Thread-Virtual&quot;: &quot;true&quot;
+  },
+  &quot;body&quot;: {
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;请提供有效 Bearer Token&quot;,
+    &quot;data&quot;: null
+  }
+}</pre></article><article><div class="row"><h2>有效 JWT：200 成功 + 虚拟线程</h2>
+<span class="status">HTTP 200</span></div><p>GET /api/books/1 · Authorization: Bearer [REDACTED]</p>
+<p class="pass">PASS · expected 200</p>
+<pre>{
+  &quot;responseHeaders&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json&quot;,
+    &quot;X-Java-Version&quot;: &quot;24.0.1&quot;,
+    &quot;X-Request-Thread-Name&quot;: &quot;tomcat-handler-2&quot;,
+    &quot;X-Request-Thread-Virtual&quot;: &quot;true&quot;
+  },
+  &quot;body&quot;: {
+    &quot;code&quot;: 200,
+    &quot;message&quot;: &quot;success&quot;,
+    &quot;data&quot;: {
+      &quot;id&quot;: 1,
+      &quot;title&quot;: &quot;三体&quot;,
+      &quot;author&quot;: &quot;刘慈欣&quot;,
+      &quot;category&quot;: &quot;科幻&quot;,
+      &quot;price&quot;: &quot;59.80&quot;,
+      &quot;stock&quot;: 100
+    }
+  }
+}</pre></article><article><div class="row"><h2>错误 Token：401 拦截</h2>
+<span class="status">HTTP 401</span></div><p>GET /api/books/1 · Authorization: Bearer [REDACTED]</p>
+<p class="pass">PASS · expected 401</p>
+<pre>{
+  &quot;responseHeaders&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json;charset=UTF-8&quot;,
+    &quot;Www-Authenticate&quot;: &quot;Bearer&quot;,
+    &quot;X-Java-Version&quot;: &quot;24.0.1&quot;,
+    &quot;X-Request-Thread-Name&quot;: &quot;tomcat-handler-3&quot;,
+    &quot;X-Request-Thread-Virtual&quot;: &quot;true&quot;
+  },
+  &quot;body&quot;: {
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;Token 无效或已过期&quot;,
+    &quot;data&quot;: null
+  }
+}</pre></article><article><div class="row"><h2>仅有 Session Cookie：401</h2>
+<span class="status">HTTP 401</span></div><p>GET /api/books/1</p>
+<p class="pass">PASS · expected 401</p>
+<pre>{
+  &quot;responseHeaders&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json;charset=UTF-8&quot;,
+    &quot;Www-Authenticate&quot;: &quot;Bearer&quot;,
+    &quot;X-Java-Version&quot;: &quot;24.0.1&quot;,
+    &quot;X-Request-Thread-Name&quot;: &quot;tomcat-handler-4&quot;,
+    &quot;X-Request-Thread-Virtual&quot;: &quot;true&quot;
+  },
+  &quot;body&quot;: {
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;请提供有效 Bearer Token&quot;,
+    &quot;data&quot;: null
+  }
+}</pre></article><article><div class="row"><h2>成功请求后不带 Token：仍为 401</h2>
+<span class="status">HTTP 401</span></div><p>GET /api/books/1</p>
+<p class="pass">PASS · expected 401</p>
+<pre>{
+  &quot;responseHeaders&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json;charset=UTF-8&quot;,
+    &quot;Www-Authenticate&quot;: &quot;Bearer&quot;,
+    &quot;X-Java-Version&quot;: &quot;24.0.1&quot;,
+    &quot;X-Request-Thread-Name&quot;: &quot;tomcat-handler-5&quot;,
+    &quot;X-Request-Thread-Virtual&quot;: &quot;true&quot;
+  },
+  &quot;body&quot;: {
+    &quot;code&quot;: 401,
+    &quot;message&quot;: &quot;请提供有效 Bearer Token&quot;,
+    &quot;data&quot;: null
+  }
+}</pre></article><article><div class="row"><h2>非法 ID：400</h2>
+<span class="status">HTTP 400</span></div><p>GET /api/books/0 · Authorization: Bearer [REDACTED]</p>
+<p class="pass">PASS · expected 400</p>
+<pre>{
+  &quot;responseHeaders&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json&quot;,
+    &quot;X-Java-Version&quot;: &quot;24.0.1&quot;,
+    &quot;X-Request-Thread-Name&quot;: &quot;tomcat-handler-6&quot;,
+    &quot;X-Request-Thread-Virtual&quot;: &quot;true&quot;
+  },
+  &quot;body&quot;: {
+    &quot;code&quot;: 400,
+    &quot;message&quot;: &quot;id 必须大于等于 1&quot;,
+    &quot;data&quot;: null
+  }
+}</pre></article><article><div class="row"><h2>图书不存在：404</h2>
+<span class="status">HTTP 404</span></div><p>GET /api/books/99999 · Authorization: Bearer [REDACTED]</p>
+<p class="pass">PASS · expected 404</p>
+<pre>{
+  &quot;responseHeaders&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json&quot;,
+    &quot;X-Java-Version&quot;: &quot;24.0.1&quot;,
+    &quot;X-Request-Thread-Name&quot;: &quot;tomcat-handler-7&quot;,
+    &quot;X-Request-Thread-Virtual&quot;: &quot;true&quot;
+  },
+  &quot;body&quot;: {
+    &quot;code&quot;: 404,
+    &quot;message&quot;: &quot;图书不存在&quot;,
+    &quot;data&quot;: null
+  }
+}</pre></article></div><p><small>不是伪造浏览器 Network 截图；请在浏览器打开本报告后实际截图提交。虚拟线程证据来自服务端 Thread.currentThread().isVirtual()。</small></p></html>

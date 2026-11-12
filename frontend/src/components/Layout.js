@@ -3,6 +3,8 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Badge, Button, theme } from 'antd';
 import {
   HomeOutlined,
+  RobotOutlined,
+  CompassOutlined,
   ShoppingCartOutlined,
   UserOutlined,
   LoginOutlined,
@@ -35,6 +37,8 @@ function AppLayout() {
   const getSelectedKey = () => {
     const path = location.pathname;
     if (path === '/') return 'home';
+    if (path === '/assistant') return 'assistant';
+    if (path === '/guide') return 'guide';
     if (path.startsWith('/book/')) return 'home';
     if (path === '/cart') return 'cart';
     if (path === '/orders') return 'orders';
@@ -68,6 +72,8 @@ function AppLayout() {
 
   const menuItems = [
     { key: 'home', icon: <HomeOutlined />, label: '首页' },
+    { key: 'assistant', icon: <RobotOutlined />, label: '智能助手' },
+    { key: 'guide', icon: <CompassOutlined />, label: '图书导购 Agent' },
     {
       key: 'cart',
       icon: (
@@ -99,6 +105,8 @@ function AppLayout() {
     }
     const routes = {
       'home': '/',
+      'assistant': '/assistant',
+      'guide': '/guide',
       'cart': '/cart',
       'orders': '/orders',
       'profile': '/profile',

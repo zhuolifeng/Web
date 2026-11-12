@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-10-24T13:40:34.650057+00:00",
+  "kind": "local synthetic blocking I/O HTTP benchmark",
+  "virtual": {
+    "url": "http://127.0.0.1:18081",
+    "requests": 100,
+    "concurrency": 50,
+    "elapsedSeconds": 0.5222,
+    "requestsPerSecond": 191.5,
+    "meanMs": 236.46,
+    "p95Ms": 256.06,
+    "successes": 100,
+    "virtualHeaderValues": [
+      "true"
+    ],
+    "javaVersions": [
+      "24.0.1"
+    ]
+  },
+  "platform": {
+    "url": "http://127.0.0.1:18082",
+    "requests": 100,
+    "concurrency": 50,
+    "elapsedSeconds": 1.1092,
+    "requestsPerSecond": 90.16,
+    "meanMs": 456.53,
+    "p95Ms": 642.47,
+    "successes": 100,
+    "virtualHeaderValues": [
+      "false"
+    ],
+    "javaVersions": [
+      "24.0.1"
+    ]
+  },
+  "measuredThroughputRatio": 2.124
+}

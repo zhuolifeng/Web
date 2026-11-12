@@ -1,0 +1,76 @@
+E-BookStore：可复用 Prompt 与确定性验证对话
+
+[System Prompt]
+你是一名资深后端 API 架构师和 OpenAPI 3.0 技术文档工程师。
+你的任务是为 E-BookStore 生成可由 Swagger 工具导入的图书管理接口契约。
+必须区分目标设计与仓库现状，不能声称尚未实现的功能已经可调用。
+输出必须且只能是一个严格合法的 JSON 对象：禁止 Markdown 围栏、解释性前后缀、
+注释、尾逗号、重复键。openapi 固定为 "3.0.3"。每轮回复简单说明做了什么。
+
+[User Prompt：第一轮，生成]
+为本仓库生成完整 OpenAPI 3.0 JSON 接口文档，要求如下：
+1. info.title = "E-BookStore 图书管理 REST API"，version = "1.0.0"，
+   server = http://localhost:8080。info.description 明确这是目标接口契约。
+2. 固定六项操作（不得增减或换名）：
+   GET /api/v1/books → listBooks
+   GET /api/v1/books/{id} → getBook
+   POST /api/v1/books → createBook
+   PUT /api/v1/books/{id} → replaceBook
+   DELETE /api/v1/books/{id} → deleteBook
+   PUT /api/v1/books/{id}/stock → setBookStock
+3. 查询参数 page 默认 1、最小 1；size 默认 20、范围 1–100；category 可选，
+   长度 1–64，精确匹配；keyword 可选，长度 1–255，匹配书名或作者。
+   两个过滤条件取交集，先过滤再按 id 升序分页。空分类和空关键词返回 400。
+   超出末页返回空 items；无结果 totalElements 和 totalPages 均为 0。
+4. id 是最小值为 1 的 int64 路径参数，required=true。
+5. Book 字段按仓库 BookDto：id 为 int64，stock 为 int32，其他字段为 string。
+   字段包括 title、author、category、badge、stars、ratingNum、ratingCount、price、
+   originalPrice、description、intro、authorBio、publisher、publishDate、pages、
+   isbn、binding、coverImg、coverEmoji。不要把现有 price/pages 改成数值类型。
+   title 最大 255，author 最大 128，category 最大 64；三者最小长度 1。
+   其他长度遵照 Book.java。price 为非负十进制金额字符串，最多两位小数，无货币符号。
+   stock 范围 0–2147483647。Book 必填 id/title/author/category/price/stock。
+6. 创建和完整替换请求必填 title/author/category/price/stock，不接受 id、未知字段或 null；
+   完整替换时未提供的可选字段清空。库存请求只接受且必须包含 stock，
+   表示绝对库存值，重复设置具有幂等语义，不影响其他字段。响应空可选字段省略。
+7. 成功响应 {code,message,data}，code 与 HTTP 状态一致；详情/更新 data 为 Book。
+   列表 data 为 {items,page,size,totalElements,totalPages}。
+   POST 返回 201，并带 Location 响应头。DELETE 返回 204，无响应体。
+8. 错误响应 {code,message,data:null}，定义 400/401/403/404/409/500。
+   所有操作包含 400/500；所有写操作包含 401/403；带 id 的操作包含 404；
+   删除被订单引用的图书返回 409。不强加仓库未定义的 ISBN 唯一约束。
+9. GET 公开；其余操作使用 HTTP bearer JWT，且描述要求 ROLE_ADMIN。
+   登录沿用现有 POST /api/v1/users/login，不在本文新增登录操作。
+10. components.schemas 包含 Book/CreateBookRequest/ReplaceBookRequest/
+    StockUpdateRequest/ErrorResponse/BookPage/BookResponse/CreatedBookResponse/
+    BookPageResponse；components.responses 复用错误结构。
+11. 固定示例：id=1，title=三体，author=刘慈欣，category=科幻，price="59.80"，
+    stock=100；库存更新为 80。列表 page=1,size=20,totalElements=1,totalPages=1。
+    无真实个人数据、JWT 或密钥。
+12. 必须附请求/响应示例、参数约束、错误说明；只输出完整 JSON。
+
+本次设计文档，不修改后端代码。生成文件后，简单说一下接口设计。
+
+[第二轮：自查并修复]
+将第一轮完整 JSON 作为本轮上下文。
+检查是否为单个合法 OpenAPI 3.0.3 JSON、六项路径及 operationId 是否完全一致、
+所有路径参数是否 required、分页和分类约束是否完整、金额类型是否仍为 string、
+所有本地引用是否存在、管理员写操作是否包含 401/403、204 是否没有 content、
+示例是否符合各自 Schema。只修正不符合项，不增加新功能；输出完整 JSON，禁止解释。
+将结果保存为 round2.json，并运行本地校验脚本。
+
+[第三轮：同规则重复生成]
+在独立的新会话中发送相同 System Prompt 和第一轮 User Prompt，附同一份
+BookDto.java、Book.java 和 api-prompts.txt，使用相同模型版本及可用的相同生成参数，
+不要附带第二轮结果。要求仍然只输出完整 JSON。保存为 round3.json。
+分别运行：
+python3 docs/validate_openapi.py docs/round2.json
+python3 docs/validate_openapi.py docs/round3.json
+python3 docs/validate_openapi.py docs/round2.json --compare docs/round3.json
+
+[判定规则与失败修复]
+JSON 对象键排序后比较完整结构，忽略缩进和对象键顺序，保留数组顺序与所有值。
+对比失败时，用差异要求模型恢复第一轮固定规则，再运行校验；不得放宽规则来通过。
+文档中的示例和流程是验证方案，不是已执行三次模型生成的实验记录。
+即使固定模型和生成参数，也不能保证模型逐字确定性；比较通过只证明该次样本相同。
+本地脚本是已覆盖规则的检查，不替代完整 OpenAPI 校验或后端集成测试。

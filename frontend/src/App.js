@@ -5,6 +5,8 @@ import AppLayout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
 import RequireAdmin from './components/RequireAdmin';
 import HomePage from './pages/HomePage';
+import AssistantPage from './pages/AssistantPage';
+import GuidePage from './pages/GuidePage';
 import BookDetailPage from './pages/BookDetailPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
@@ -32,6 +34,8 @@ function App() {
           <Route path="/" element={<AppLayout />}>
             {/* 公开页面 */}
             <Route index element={<HomePage />} />
+            <Route path="assistant" element={<AssistantPage />} />
+            <Route path="guide" element={<GuidePage />} />
             <Route path="book/:id" element={<BookDetailPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />

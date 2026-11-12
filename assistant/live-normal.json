@@ -1,0 +1,49 @@
+[
+  {
+    "scenario": "normal",
+    "question": "帮我查一下 ISBN为12345 的书还有多少本，顺便看看别家卖多少钱",
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "answer": "查询结果如下：\n\n**库存**\n- ISBN 12345《三体（课堂示例）》：现有 **100 本**\n- ⚠️ 此为演示库存数据（source: demo）\n\n**竞品价格**\n- 模拟书店 A：**¥55.90**（模拟数据）\n\n需要其他帮助吗？",
+        "toolCalls": [
+          {
+            "id": "chatcmpl-tool-894a485b48cd7eec",
+            "name": "check_inventory",
+            "arguments": "{\"isbn\": \"12345\"}",
+            "result": {
+              "ok": true,
+              "isbn": "12345",
+              "source": "demo",
+              "stock": 100,
+              "matchCount": 1,
+              "books": [
+                {
+                  "id": 1,
+                  "title": "三体（课堂示例）",
+                  "stock": 100
+                }
+              ]
+            }
+          },
+          {
+            "id": "chatcmpl-tool-a454fcb7a4b18e66",
+            "name": "get_competitor_price",
+            "arguments": "{\"isbn\": \"12345\"}",
+            "result": {
+              "ok": true,
+              "isbn": "12345",
+              "competitor": "模拟书店 A",
+              "price": "55.90",
+              "currency": "CNY",
+              "simulated": true
+            }
+          }
+        ],
+        "mode": "live",
+        "inventoryMode": "demo"
+      }
+    }
+  }
+]

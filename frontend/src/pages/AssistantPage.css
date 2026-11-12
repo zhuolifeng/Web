@@ -1,0 +1,19 @@
+.assistant-page { max-width: 1000px; margin: 0 auto; }
+.assistant-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.assistant-heading h2 { margin-bottom: 8px; }
+.assistant-examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.assistant-messages { min-height: 320px; max-height: 60vh; overflow-y: auto; background: #f5f7fb; border: 1px solid #e8edf5; border-radius: 16px; padding: 20px; }
+.assistant-empty { text-align: center; color: #667085; padding: 70px 12px; }
+.assistant-empty > .anticon { color: #1677ff; font-size: 40px; }
+.assistant-message { max-width: 92%; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; background: white; border: 1px solid #e5eaf3; overflow-wrap: anywhere; }
+.assistant-message.user { margin-left: auto; background: #eaf2ff; }
+.assistant-message.error { border-color: #ffccc7; background: #fff2f0; }
+.assistant-message strong { margin-right: 10px; }
+.assistant-message p { white-space: pre-wrap; margin: 8px 0; line-height: 1.8; }
+.assistant-message summary { cursor: pointer; color: #165dcb; }
+.assistant-tool { padding: 12px 0; border-top: 1px solid #eee; margin-top: 10px; }
+.assistant-tool b { margin-right: 10px; }
+.assistant-tool pre { white-space: pre-wrap; font-size: 12px; margin: 8px 0; }
+.assistant-compose { display: flex; align-items: flex-end; gap: 12px; margin: 18px 0 10px; }
+.assistant-thinking { padding: 12px; color: #667085; display: flex; gap: 10px; }
+@media (max-width: 600px) { .assistant-heading { align-items: flex-start; } .assistant-messages { padding: 10px; } .assistant-message { max-width: 100%; } .assistant-compose { flex-direction: column; align-items: stretch; } }

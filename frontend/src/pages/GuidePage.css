@@ -1,0 +1,17 @@
+.guide-page { max-width: 1050px; margin: 0 auto; }
+.guide-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.guide-examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.guide-chat { min-height: 280px; background: #f5f8fc; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; }
+.guide-empty { color: #667085; text-align: center; padding: 60px 8px; }
+.guide-message { background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin: 0 0 18px; padding: 16px; overflow-wrap: anywhere; }
+.guide-message.user { background: #eaf3ff; margin-left: 8%; }
+.guide-message.failed { background: #fff2f0; }
+.guide-message > strong { margin-right: 12px; }
+.guide-message p { white-space: pre-wrap; line-height: 1.8; }
+.guide-page summary { color: #165dcb; cursor: pointer; padding: 6px 0; }
+.guide-trace li { padding: 12px 0; border-bottom: 1px solid #edf0f4; line-height: 1.8; }
+.guide-page pre { white-space: pre-wrap; max-height: 380px; overflow: auto; font-size: 12px; }
+.guide-index { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin: 12px 0; }
+.guide-compose { display: flex; gap: 12px; align-items: flex-end; margin: 18px 0 12px; }
+.guide-loading { display: flex; align-items: center; gap: 10px; padding: 12px; color: #667085; }
+@media (max-width: 600px) { .guide-compose { flex-direction: column; align-items: stretch; } .guide-chat { padding: 10px; } .guide-message.user { margin-left: 0; } }

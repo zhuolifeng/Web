@@ -1,0 +1,144 @@
+{
+  "timestamp": "2026-10-25T07:05:35.771417+00:00",
+  "baseUrl": "http://127.0.0.1:8081",
+  "minimumJavaVersion": 21,
+  "cases": [
+    {
+      "name": "未携带 Token：401 拦截",
+      "request": "GET /api/books/1",
+      "status": 401,
+      "expectedStatus": 401,
+      "passed": true,
+      "responseHeaders": {
+        "Content-Type": "application/json;charset=UTF-8",
+        "Www-Authenticate": "Bearer",
+        "X-Java-Version": "24.0.1",
+        "X-Request-Thread-Name": "tomcat-handler-1",
+        "X-Request-Thread-Virtual": "true"
+      },
+      "body": {
+        "code": 401,
+        "message": "请提供有效 Bearer Token",
+        "data": null
+      }
+    },
+    {
+      "name": "有效 JWT：200 成功 + 虚拟线程",
+      "request": "GET /api/books/1 · Authorization: Bearer [REDACTED]",
+      "status": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "responseHeaders": {
+        "Content-Type": "application/json",
+        "X-Java-Version": "24.0.1",
+        "X-Request-Thread-Name": "tomcat-handler-2",
+        "X-Request-Thread-Virtual": "true"
+      },
+      "body": {
+        "code": 200,
+        "message": "success",
+        "data": {
+          "id": 1,
+          "title": "三体",
+          "author": "刘慈欣",
+          "category": "科幻",
+          "price": "59.80",
+          "stock": 100
+        }
+      }
+    },
+    {
+      "name": "错误 Token：401 拦截",
+      "request": "GET /api/books/1 · Authorization: Bearer [REDACTED]",
+      "status": 401,
+      "expectedStatus": 401,
+      "passed": true,
+      "responseHeaders": {
+        "Content-Type": "application/json;charset=UTF-8",
+        "Www-Authenticate": "Bearer",
+        "X-Java-Version": "24.0.1",
+        "X-Request-Thread-Name": "tomcat-handler-3",
+        "X-Request-Thread-Virtual": "true"
+      },
+      "body": {
+        "code": 401,
+        "message": "Token 无效或已过期",
+        "data": null
+      }
+    },
+    {
+      "name": "仅有 Session Cookie：401",
+      "request": "GET /api/books/1",
+      "status": 401,
+      "expectedStatus": 401,
+      "passed": true,
+      "responseHeaders": {
+        "Content-Type": "application/json;charset=UTF-8",
+        "Www-Authenticate": "Bearer",
+        "X-Java-Version": "24.0.1",
+        "X-Request-Thread-Name": "tomcat-handler-4",
+        "X-Request-Thread-Virtual": "true"
+      },
+      "body": {
+        "code": 401,
+        "message": "请提供有效 Bearer Token",
+        "data": null
+      }
+    },
+    {
+      "name": "成功请求后不带 Token：仍为 401",
+      "request": "GET /api/books/1",
+      "status": 401,
+      "expectedStatus": 401,
+      "passed": true,
+      "responseHeaders": {
+        "Content-Type": "application/json;charset=UTF-8",
+        "Www-Authenticate": "Bearer",
+        "X-Java-Version": "24.0.1",
+        "X-Request-Thread-Name": "tomcat-handler-5",
+        "X-Request-Thread-Virtual": "true"
+      },
+      "body": {
+        "code": 401,
+        "message": "请提供有效 Bearer Token",
+        "data": null
+      }
+    },
+    {
+      "name": "非法 ID：400",
+      "request": "GET /api/books/0 · Authorization: Bearer [REDACTED]",
+      "status": 400,
+      "expectedStatus": 400,
+      "passed": true,
+      "responseHeaders": {
+        "Content-Type": "application/json",
+        "X-Java-Version": "24.0.1",
+        "X-Request-Thread-Name": "tomcat-handler-6",
+        "X-Request-Thread-Virtual": "true"
+      },
+      "body": {
+        "code": 400,
+        "message": "id 必须大于等于 1",
+        "data": null
+      }
+    },
+    {
+      "name": "图书不存在：404",
+      "request": "GET /api/books/99999 · Authorization: Bearer [REDACTED]",
+      "status": 404,
+      "expectedStatus": 404,
+      "passed": true,
+      "responseHeaders": {
+        "Content-Type": "application/json",
+        "X-Java-Version": "24.0.1",
+        "X-Request-Thread-Name": "tomcat-handler-7",
+        "X-Request-Thread-Virtual": "true"
+      },
+      "body": {
+        "code": 404,
+        "message": "图书不存在",
+        "data": null
+      }
+    }
+  ]
+}

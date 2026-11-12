@@ -1,0 +1,124 @@
+{
+  "command": "mvn -o test",
+  "tests": 23,
+  "failures": 0,
+  "errors": 0,
+  "compileRelease": 21,
+  "classFileMajorVersion": 65,
+  "suites": [
+    {
+      "name": "com.bookstore.cloud.CloudApiTest",
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 1.773,
+      "javaVersion": "24.0.1",
+      "cases": [
+        {
+          "name": "nonNumericBookIdReturns400",
+          "passed": true
+        },
+        {
+          "name": "invalidBookIdReturns400",
+          "passed": true
+        },
+        {
+          "name": "validTokenReturnsBookAndVirtualRequestThread",
+          "passed": true
+        },
+        {
+          "name": "missingExpirationReturns401",
+          "passed": true
+        },
+        {
+          "name": "malformedTokenReturns401",
+          "passed": true
+        },
+        {
+          "name": "concurrentHttpRequestsAllUseVirtualThreads",
+          "passed": true
+        },
+        {
+          "name": "missingSubjectReturns401",
+          "passed": true
+        },
+        {
+          "name": "tokenIssueResponseIsNotCached",
+          "passed": true
+        },
+        {
+          "name": "authIsNotRememberedAcrossRequests",
+          "passed": true
+        },
+        {
+          "name": "missingLoginFieldsReturn400",
+          "passed": true
+        },
+        {
+          "name": "missingTokenReturns401",
+          "passed": true
+        },
+        {
+          "name": "expiredTokenReturns401",
+          "passed": true
+        },
+        {
+          "name": "malformedLoginJsonReturns400",
+          "passed": true
+        },
+        {
+          "name": "lowercaseBearerSchemeIsAccepted",
+          "passed": true
+        },
+        {
+          "name": "invalidRoleReturns401",
+          "passed": true
+        },
+        {
+          "name": "basicAuthIsNotAccepted",
+          "passed": true
+        },
+        {
+          "name": "tamperedSignatureIsRejected",
+          "passed": true
+        },
+        {
+          "name": "absentBookReturns404",
+          "passed": true
+        },
+        {
+          "name": "emptyBearerReturns401",
+          "passed": true
+        },
+        {
+          "name": "sessionCookieDoesNotAuthenticate",
+          "passed": true
+        },
+        {
+          "name": "wrongIssuerReturns401",
+          "passed": true
+        },
+        {
+          "name": "wrongCredentialsReturn401",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "com.bookstore.cloud.PlatformThreadControlTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.216,
+      "javaVersion": "24.0.1",
+      "cases": [
+        {
+          "name": "disabledVirtualThreadsUsePlatformRequestThread",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

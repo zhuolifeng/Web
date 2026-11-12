@@ -1,0 +1,16 @@
+[
+  {
+    "scenario": "invalid",
+    "question": "查一下 ISBN为abc 的库存和竞品价格",
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "answer": "ISBN \"abc\" 格式无效，无法查询。请提供正确的 ISBN（10 位或 13 位数字，如 9781234567890）。",
+        "toolCalls": [],
+        "mode": "live",
+        "inventoryMode": "demo"
+      }
+    }
+  }
+]

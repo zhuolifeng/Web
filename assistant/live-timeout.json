@@ -1,0 +1,62 @@
+[
+  {
+    "scenario": "timeout",
+    "question": "查一下 ISBN为00000 的库存和竞品价格",
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "answer": "库存查询结果如下（**演示库存**）：\n\n- **《超时演示图书》**（ISBN 00000）：**12 本**\n\n竞品价格查询两次均超时，暂时无法获取，请稍后再试。",
+        "toolCalls": [
+          {
+            "id": "chatcmpl-tool-a94779c0fe440e1d",
+            "name": "check_inventory",
+            "arguments": "{\"isbn\": \"00000\"}",
+            "result": {
+              "ok": true,
+              "isbn": "00000",
+              "source": "demo",
+              "stock": 12,
+              "matchCount": 1,
+              "books": [
+                {
+                  "id": 2,
+                  "title": "超时演示图书",
+                  "stock": 12
+                }
+              ]
+            }
+          },
+          {
+            "id": "chatcmpl-tool-a8c71432f96ed381",
+            "name": "get_competitor_price",
+            "arguments": "{\"isbn\": \"00000\"}",
+            "result": {
+              "ok": false,
+              "error": {
+                "code": "TIMEOUT",
+                "message": "上游接口超时，可重试一次。",
+                "retryable": true
+              }
+            }
+          },
+          {
+            "id": "chatcmpl-tool-b85c5d9e10273c72",
+            "name": "get_competitor_price",
+            "arguments": "{\"isbn\": \"00000\"}",
+            "result": {
+              "ok": false,
+              "error": {
+                "code": "TIMEOUT",
+                "message": "上游接口超时，可重试一次。",
+                "retryable": true
+              }
+            }
+          }
+        ],
+        "mode": "live",
+        "inventoryMode": "demo"
+      }
+    }
+  }
+]
