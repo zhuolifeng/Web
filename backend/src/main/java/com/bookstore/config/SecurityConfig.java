@@ -3,6 +3,7 @@ package com.bookstore.config;
 import com.bookstore.dto.ApiResponse;
 import com.bookstore.security.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -59,6 +60,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // SSE 完成/超时会触发 ASYNC/ERROR 二次分派，此时无需重复鉴权
+                .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/books").permitAll()
@@ -67,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/v1/cart/**").authenticated()
                 .requestMatchers("/api/v1/orders/**").authenticated()
+                .requestMatchers("/api/orders/**").authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().authenticated()
             )

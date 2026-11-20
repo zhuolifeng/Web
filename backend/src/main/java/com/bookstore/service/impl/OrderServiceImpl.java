@@ -2,6 +2,7 @@ package com.bookstore.service.impl;
 
 import com.bookstore.dto.OrderCreateRequest;
 import com.bookstore.dto.OrderDto;
+import com.bookstore.dto.OrderEvent;
 import com.bookstore.entity.Book;
 import com.bookstore.entity.CartItem;
 import com.bookstore.entity.Order;
@@ -56,8 +57,36 @@ public class OrderServiceImpl implements OrderService {
         if (cartItems.isEmpty()) {
             throw new BusinessException(400, "购物车为空，无法下单");
         }
+        List<OrderEvent.Item> items = cartItems.stream()
+                .map(ci -> new OrderEvent.Item(ci.getBookId(), ci.getQuantity()))
+                .toList();
+        OrderDto dto = placeOrder(userId, req, items);
 
-        List<Long> bookIds = cartItems.stream().map(CartItem::getBookId).toList();
+        // 清空购物车
+        cartItemRepository.deleteByUserId(userId);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public OrderDto createFromItems(Long userId, OrderCreateRequest req, List<OrderEvent.Item> items) {
+        if (items == null || items.isEmpty()) {
+            throw new BusinessException(400, "购物车为空，无法下单");
+        }
+        OrderDto dto = placeOrder(userId, req, items);
+
+        // 仅移除本次已购买的书籍，下单排队期间新加入购物车的书不受影响
+        List<Long> bookIds = items.stream().map(OrderEvent.Item::getBookId).toList();
+        cartItemRepository.deleteByUserIdAndBookIdIn(userId, bookIds);
+        return dto;
+    }
+
+    /** 创建订单并扣减库存（调用方负责事务） */
+    private OrderDto placeOrder(Long userId, OrderCreateRequest req, List<OrderEvent.Item> cartItems) {
+        if (req == null) {
+            throw new BusinessException(400, "收货信息不能为空");
+        }
+        List<Long> bookIds = cartItems.stream().map(OrderEvent.Item::getBookId).toList();
         Map<Long, Book> bookMap = bookRepository.findAllById(bookIds).stream()
                 .collect(Collectors.toMap(Book::getId, b -> b));
 
@@ -74,7 +103,7 @@ public class OrderServiceImpl implements OrderService {
 
         BigDecimal total = BigDecimal.ZERO;
         List<OrderItem> items = new ArrayList<>();
-        for (CartItem ci : cartItems) {
+        for (OrderEvent.Item ci : cartItems) {
             Book book = bookMap.get(ci.getBookId());
             if (book == null) continue;
 
@@ -99,6 +128,9 @@ public class OrderServiceImpl implements OrderService {
             items.add(oi);
             total = total.add(subtotal);
         }
+        if (items.isEmpty()) {
+            throw new BusinessException(400, "订单中的书籍不存在或已下架");
+        }
         // 满99免运费，否则加10元运费
         BigDecimal shipping = total.compareTo(new BigDecimal("99")) >= 0
                 ? BigDecimal.ZERO : new BigDecimal("10");
@@ -109,10 +141,6 @@ public class OrderServiceImpl implements OrderService {
             oi.setOrderId(saved.getId());
         }
         List<OrderItem> savedItems = orderItemRepository.saveAll(items);
-
-        // 清空购物车
-        cartItemRepository.deleteByUserId(userId);
-
         return OrderDto.from(saved, savedItems);
     }
 

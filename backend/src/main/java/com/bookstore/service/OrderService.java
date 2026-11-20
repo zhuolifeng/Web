@@ -2,6 +2,7 @@ package com.bookstore.service;
 
 import com.bookstore.dto.OrderCreateRequest;
 import com.bookstore.dto.OrderDto;
+import com.bookstore.dto.OrderEvent;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,6 +17,12 @@ public interface OrderService {
 
     /** 从购物车创建订单，同时扣减库存 */
     OrderDto createFromCart(Long userId, OrderCreateRequest request);
+
+    /**
+     * 按下单时的购物车快照创建订单并扣减库存（供 Kafka 消费者异步调用）。
+     * 成功后从购物车中移除已购买的书籍。
+     */
+    OrderDto createFromItems(Long userId, OrderCreateRequest request, List<OrderEvent.Item> items);
 
     /** 查询某用户的全部订单 */
     List<OrderDto> listByUser(Long userId);

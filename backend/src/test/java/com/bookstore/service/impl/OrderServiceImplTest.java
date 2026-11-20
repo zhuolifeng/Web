@@ -2,6 +2,7 @@ package com.bookstore.service.impl;
 
 import com.bookstore.dto.OrderCreateRequest;
 import com.bookstore.dto.OrderDto;
+import com.bookstore.dto.OrderEvent;
 import com.bookstore.entity.Book;
 import com.bookstore.entity.CartItem;
 import com.bookstore.entity.Order;
@@ -124,6 +125,43 @@ class OrderServiceImplTest {
         // 验证购物车被清空
         verify(cartItemRepository).deleteByUserId(1L);
         verify(bookRepository).save(sampleBook);
+    }
+
+    @Test
+    @DisplayName("异步下单 - 按快照扣减库存，只移除已购买书籍")
+    void testCreateFromItemsSuccess() {
+        when(bookRepository.findAllById(anyList()))
+                .thenReturn(Collections.singletonList(sampleBook));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order o = invocation.getArgument(0);
+            o.setId(101L);
+            return o;
+        });
+        when(orderItemRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderCreateRequest req = new OrderCreateRequest();
+        req.setReceiver("张三");
+        OrderDto result = orderService.createFromItems(1L, req,
+                List.of(new OrderEvent.Item(1L, 3)));
+
+        assertEquals(101L, result.getId());
+        assertEquals(57, sampleBook.getStock());
+        verify(cartItemRepository).deleteByUserIdAndBookIdIn(1L, List.of(1L));
+        verify(cartItemRepository, never()).deleteByUserId(anyLong());
+    }
+
+    @Test
+    @DisplayName("异步下单 - 库存不足时抛出异常且不改购物车")
+    void testCreateFromItemsInsufficientStock() {
+        sampleBook.setStock(1);
+        when(bookRepository.findAllById(anyList()))
+                .thenReturn(Collections.singletonList(sampleBook));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orderService.createFromItems(1L, new OrderCreateRequest(),
+                        List.of(new OrderEvent.Item(1L, 5))));
+        assertTrue(ex.getMessage().contains("库存不足"));
+        verify(cartItemRepository, never()).deleteByUserIdAndBookIdIn(anyLong(), anyCollection());
     }
 
     @Test

@@ -29,9 +29,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
-
+        String token = null;
         if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+            token = header.substring(7);
+        } else if (isSseStream(request)) {
+            // 浏览器 EventSource 不能自定义请求头，SSE 接口允许通过 ?token= 传递 JWT
+            token = request.getParameter("token");
+        }
+
+        if (token != null && !token.isBlank()) {
             if (jwtUtil.isValid(token)) {
                 String username = jwtUtil.getUsername(token);
                 Long userId = jwtUtil.getUserId(token);
@@ -48,5 +54,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isSseStream(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return "GET".equals(request.getMethod()) && uri.startsWith("/api/orders/") && uri.endsWith("/stream");
     }
 }
