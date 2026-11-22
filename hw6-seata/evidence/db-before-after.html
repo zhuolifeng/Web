@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw6 异常流程：数据库前后状态对比</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:13px/1.45 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre-wrap;word-break:break-all;margin:0;background:#161a21;border:1px solid #262c36;
+    border-radius:6px;padding:12px}
+.pass{color:#4ade80;font-weight:700}.fail{color:#f87171;font-weight:700}
+.case{color:#fbbf24;font-weight:700}.err{color:#f87171}.rb{color:#60a5fa;font-weight:700}
+.hl{background:#3b2f0b;color:#fde68a}.sec{color:#c084fc;font-weight:700}
+</style></head><body><div class='wrap'><h1>hw6 异常流程：数据库前后状态对比</h1><div class='sub'>bookstore_inventory.inventory / bookstore_order.orders / undo_log —— 来自 scripts/verify.sh 实际输出</div><pre><span class="case">################ 用例 2：异常流程（bookId=2, quantity=3, 订单入库时抛 RuntimeException） ################</span>
+<span class="sec">---- 下单前 ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |    98 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |   100 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++----+----------------------+---------+---------+----------+--------------+---------+
+| id | order_no             | user_id | book_id | quantity | total_amount | status  |
++----+----------------------+---------+---------+----------+--------------+---------+
+|  1 | 20261120011924449679 |       1 |       1 |        2 |       110.00 | CREATED |
++----+----------------------+---------+---------+----------+--------------+---------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             0 |
+| bookstore_order     |             0 |
++---------------------+---------------+
+&gt; POST http://localhost:9002/api/orders  {&quot;userId&quot;:1,&quot;bookId&quot;:2,&quot;quantity&quot;:3,&quot;simulateError&quot;:true}
+<span class="err">{&quot;status&quot;:500,&quot;error&quot;:&quot;Internal Server Error&quot;,&quot;message&quot;:&quot;模拟订单入库异常：订单写库失败（orderNo=20261120011927668422）&quot;,&quot;timestamp&quot;:&quot;2026-11-20T01:19:27.684402&quot;}</span>
+&lt; HTTP 500
+<span class="sec">---- 下单后（Seata 全局回滚之后） ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |    98 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |   100 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++----+----------------------+---------+---------+----------+--------------+---------+
+| id | order_no             | user_id | book_id | quantity | total_amount | status  |
++----+----------------------+---------+---------+----------+--------------+---------+
+|  1 | 20261120011924449679 |       1 |       1 |        2 |       110.00 | CREATED |
++----+----------------------+---------+---------+----------+--------------+---------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             0 |
+| bookstore_order     |             0 |
++---------------------+---------------+
+<span class="pass">  [PASS] 库存回滚：仍为 100（第一步扣减已撤销） (期望=100, 实际=100)</span>
+<span class="pass">  [PASS] 订单未落库：订单数仍为 1 (期望=1, 实际=1)</span>
+<span class="pass">  [PASS] 回滚完成后 undo_log 已删除 (期望=0, 实际=0)</span></pre></div></body></html>

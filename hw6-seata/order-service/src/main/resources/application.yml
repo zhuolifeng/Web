@@ -1,0 +1,48 @@
+server:
+  port: 9002
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    # 订单库（与库存库逻辑分离）
+    url: jdbc:mysql://localhost:3306/bookstore_order?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 10000
+
+# 库存中心地址（OpenFeign RPC 目标）
+inventory-service:
+  url: ${INVENTORY_URL:http://localhost:9001}
+
+# ===== Seata 客户端（TM + RM）=====
+seata:
+  enabled: true
+  application-id: order-service
+  tx-service-group: bookstore_tx_group
+  enable-auto-data-source-proxy: true
+  data-source-proxy-mode: AT
+  service:
+    vgroup-mapping:
+      bookstore_tx_group: default
+    grouplist:
+      default: ${SEATA_SERVER:127.0.0.1:8091}
+  registry:
+    type: file
+  config:
+    type: file
+  client:
+    undo:
+      log-table: undo_log
+
+logging:
+  level:
+    org.apache.seata: INFO
+    com.bookstore: INFO

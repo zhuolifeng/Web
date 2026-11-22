@@ -1,0 +1,38 @@
+server:
+  port: 9001
+
+spring:
+  application:
+    name: inventory-service
+  datasource:
+    # 库存库（与订单库逻辑分离）
+    url: jdbc:mysql://localhost:3306/bookstore_inventory?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# ===== Seata 客户端（RM）=====
+seata:
+  enabled: true
+  application-id: inventory-service
+  tx-service-group: bookstore_tx_group
+  # 自动把 DataSource 包装为 DataSourceProxy，AT 模式
+  enable-auto-data-source-proxy: true
+  data-source-proxy-mode: AT
+  service:
+    vgroup-mapping:
+      bookstore_tx_group: default
+    grouplist:
+      default: ${SEATA_SERVER:127.0.0.1:8091}
+  registry:
+    type: file
+  config:
+    type: file
+  client:
+    undo:
+      log-table: undo_log
+
+logging:
+  level:
+    org.apache.seata: INFO
+    com.bookstore: INFO

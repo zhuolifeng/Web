@@ -1,0 +1,6 @@
+target/
+logs/
+seata-server-dist/
+.idea/
+*.iml
+sessionStore/

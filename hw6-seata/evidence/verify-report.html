@@ -1,0 +1,160 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw6 Seata AT 分布式事务验证（全部用例）</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:13px/1.45 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre-wrap;word-break:break-all;margin:0;background:#161a21;border:1px solid #262c36;
+    border-radius:6px;padding:12px}
+.pass{color:#4ade80;font-weight:700}.fail{color:#f87171;font-weight:700}
+.case{color:#fbbf24;font-weight:700}.err{color:#f87171}.rb{color:#60a5fa;font-weight:700}
+.hl{background:#3b2f0b;color:#fde68a}.sec{color:#c084fc;font-weight:700}
+</style></head><body><div class='wrap'><h1>hw6 Seata AT 分布式事务验证（全部用例）</h1><div class='sub'>scripts/verify.sh 实际输出</div><pre><span class="case">===== hw6 Seata AT 分布式事务验证  2026-11-20 01:19:24 =====</span>
+数据已重置：5 本书库存均为 100，订单表为空
+
+<span class="case">################ 用例 1：正常流程（bookId=1, quantity=2） ################</span>
+<span class="sec">---- 下单前 ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |   100 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |   100 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             0 |
+| bookstore_order     |             0 |
++---------------------+---------------+
+&gt; POST http://localhost:9002/api/orders  {&quot;userId&quot;:1,&quot;bookId&quot;:1,&quot;quantity&quot;:2,&quot;simulateError&quot;:false}
+{&quot;xid&quot;:&quot;198.18.0.1:8091:4711611980913754119&quot;,&quot;orderId&quot;:1,&quot;orderNo&quot;:&quot;20261120011924449679&quot;,&quot;bookId&quot;:1,&quot;title&quot;:&quot;百年孤独&quot;,&quot;quantity&quot;:2,&quot;totalAmount&quot;:110.00,&quot;remainingStock&quot;:98}
+&lt; HTTP 200
+<span class="sec">---- 下单后 ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |    98 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |   100 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++----+----------------------+---------+---------+----------+--------------+---------+
+| id | order_no             | user_id | book_id | quantity | total_amount | status  |
++----+----------------------+---------+---------+----------+--------------+---------+
+|  1 | 20261120011924449679 |       1 |       1 |        2 |       110.00 | CREATED |
++----+----------------------+---------+---------+----------+--------------+---------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             1 |
+| bookstore_order     |             1 |
++---------------------+---------------+
+<span class="pass">  [PASS] 库存扣减 100 → 98 (期望=98, 实际=98)</span>
+<span class="pass">  [PASS] 订单数 0 → 1 (期望=1, 实际=1)</span>
+<span class="pass">  [PASS] 全局提交后 undo_log 被异步清理 (期望=0, 实际=0)</span>
+
+<span class="case">################ 用例 2：异常流程（bookId=2, quantity=3, 订单入库时抛 RuntimeException） ################</span>
+<span class="sec">---- 下单前 ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |    98 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |   100 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++----+----------------------+---------+---------+----------+--------------+---------+
+| id | order_no             | user_id | book_id | quantity | total_amount | status  |
++----+----------------------+---------+---------+----------+--------------+---------+
+|  1 | 20261120011924449679 |       1 |       1 |        2 |       110.00 | CREATED |
++----+----------------------+---------+---------+----------+--------------+---------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             0 |
+| bookstore_order     |             0 |
++---------------------+---------------+
+&gt; POST http://localhost:9002/api/orders  {&quot;userId&quot;:1,&quot;bookId&quot;:2,&quot;quantity&quot;:3,&quot;simulateError&quot;:true}
+<span class="err">{&quot;status&quot;:500,&quot;error&quot;:&quot;Internal Server Error&quot;,&quot;message&quot;:&quot;模拟订单入库异常：订单写库失败（orderNo=20261120011927668422）&quot;,&quot;timestamp&quot;:&quot;2026-11-20T01:19:27.684402&quot;}</span>
+&lt; HTTP 500
+<span class="sec">---- 下单后（Seata 全局回滚之后） ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |    98 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |   100 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++----+----------------------+---------+---------+----------+--------------+---------+
+| id | order_no             | user_id | book_id | quantity | total_amount | status  |
++----+----------------------+---------+---------+----------+--------------+---------+
+|  1 | 20261120011924449679 |       1 |       1 |        2 |       110.00 | CREATED |
++----+----------------------+---------+---------+----------+--------------+---------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             0 |
+| bookstore_order     |             0 |
++---------------------+---------------+
+<span class="pass">  [PASS] 库存回滚：仍为 100（第一步扣减已撤销） (期望=100, 实际=100)</span>
+<span class="pass">  [PASS] 订单未落库：订单数仍为 1 (期望=1, 实际=1)</span>
+<span class="pass">  [PASS] 回滚完成后 undo_log 已删除 (期望=0, 实际=0)</span>
+
+<span class="case">################ 对照组：不开启全局事务（bookId=3, quantity=5, 同样抛异常） ################</span>
+<span class="sec">---- 下单前 ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |    98 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |   100 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++----+----------------------+---------+---------+----------+--------------+---------+
+| id | order_no             | user_id | book_id | quantity | total_amount | status  |
++----+----------------------+---------+---------+----------+--------------+---------+
+|  1 | 20261120011924449679 |       1 |       1 |        2 |       110.00 | CREATED |
++----+----------------------+---------+---------+----------+--------------+---------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             0 |
+| bookstore_order     |             0 |
++---------------------+---------------+
+&gt; POST http://localhost:9002/api/orders/no-global-tx  {&quot;userId&quot;:1,&quot;bookId&quot;:3,&quot;quantity&quot;:5,&quot;simulateError&quot;:true}
+<span class="err">{&quot;status&quot;:500,&quot;error&quot;:&quot;Internal Server Error&quot;,&quot;message&quot;:&quot;模拟订单入库异常：订单写库失败（orderNo=20261120011929860131）&quot;,&quot;timestamp&quot;:&quot;2026-11-20T01:19:29.861891&quot;}</span>
+&lt; HTTP 500
+<span class="sec">---- 下单后 ----</span>
++---------+-----------------------------------+-------+
+| book_id | title                             | stock |
++---------+-----------------------------------+-------+
+|       1 | 百年孤独                          |    98 |
+|       2 | 人类简史：从动物到上帝            |   100 |
+|       3 | 活着                              |    95 |
+|       4 | 三体（全集）                      |   100 |
+|       5 | 思考，快与慢                      |   100 |
++---------+-----------------------------------+-------+
++----+----------------------+---------+---------+----------+--------------+---------+
+| id | order_no             | user_id | book_id | quantity | total_amount | status  |
++----+----------------------+---------+---------+----------+--------------+---------+
+|  1 | 20261120011924449679 |       1 |       1 |        2 |       110.00 | CREATED |
++----+----------------------+---------+---------+----------+--------------+---------+
++---------------------+---------------+
+| db                  | undo_log_rows |
++---------------------+---------------+
+| bookstore_inventory |             0 |
+| bookstore_order     |             0 |
++---------------------+---------------+
+<span class="pass">  [PASS] 无全局事务时库存无法回滚：100 → 95（数据不一致） (期望=95, 实际=95)</span>
+<span class="pass">  [PASS] 订单被本地事务回滚：订单数仍为 1 (期望=1, 实际=1)</span>
+
+异常流程控制台日志已保存: /Users/zhuolifeng/work_dir/Web/hw6-seata/evidence/rollback-console.log
+
+<span class="case">===== 结果：PASS=8 FAIL=0 =====</span></pre></div></body></html>
