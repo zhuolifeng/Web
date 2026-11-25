@@ -117,3 +117,24 @@ POST 在约 200ms 内返回 202，而处理结果约 3 秒后才由 SSE 推送�
 - `OrderService` / `OrderServiceImpl`：新增 `createFromItems`，与原 `createFromCart` 共用下单逻辑
 - `CartItemRepository`：新增 `deleteByUserIdAndBookIdIn`
 - `JwtAuthenticationFilter`（SSE 支持 `?token=`）、`SecurityConfig`、`GlobalExceptionHandler`
+
+## 7. 运行证据（`hw5-evidence/`）
+
+| 文件 | 内容 | 对应评分点 |
+| --- | --- | --- |
+| `01-success-flow.png` | `POST /api/orders` 立即返回 **202 + queueId**，SSE 依次推送 `PROCESSING` → 约 3 秒后 `SUCCESS`（含 orderId） | KafkaProducer、SSE、状态回调、非阻塞全流程 |
+| `02-failed-flow.png` | 库存不足：同样 202 立即返回，消费者处理失败后 SSE 推送 `FAILED` 及原因 | 状态回调（失败分支） |
+| `03-kafka-and-console.png` | 后端控制台：Producer 在 HTTP 线程投递（partition/offset），Consumer 在独立的 `ntainer#0-0-C-1` 线程消费，并调用 `OrderSseHub` 推送；`kafka-console-consumer.sh` 读出 topic 中的订单 JSON | KafkaProducer、KafkaConsumer 异步处理 |
+| `00-full-report.png` | 以上全部内容的完整版 | — |
+| `demo-output.txt` / `backend-console.log` | 截图对应的原始文本输出 | — |
+
+截图由 `scripts/hw5_render_evidence.py` 根据真实输出渲染（只读文本，不访问后端）。
+
+复现：
+
+```bash
+docker compose -f kafka/docker-compose.yml up -d && mvn spring-boot:run
+DEMO_USER=admin DEMO_PASS=admin123 BOOK_ID=1 QTY=1    ./scripts/demo_async_order.sh   # SUCCESS
+DEMO_USER=admin DEMO_PASS=admin123 BOOK_ID=2 QTY=9999 ./scripts/demo_async_order.sh   # FAILED
+python3 scripts/hw5_render_evidence.py
+```

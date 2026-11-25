@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw5 Kafka 生产/消费 + SSE 回调（后端控制台日志与 topic 消息）</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:13px/1.5 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+h2{font:600 14px -apple-system,sans-serif;margin:16px 0 6px;color:#c084fc}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre-wrap;word-break:break-all;margin:0;background:#161a21;border:1px solid #262c36;border-radius:6px;padding:12px}
+.sec{color:#c084fc;font-weight:700}.ok{color:#4ade80;font-weight:700}.bad{color:#f87171;font-weight:700}
+.acc{color:#fbbf24;font-weight:700}.proc{color:#60a5fa}.dim{color:#6b7280}
+</style></head><body><div class='wrap'><h1>hw5 Kafka 生产/消费 + SSE 回调（后端控制台日志与 topic 消息）</h1><div class='sub'>KafkaProducer 投递 → @KafkaListener 消费（独立线程）→ OrderSseHub 推送；注意 HTTP 线程 (http-nio-8080-exec) 与消费线程 (ntainer#0-0-C-1) 不同</div><h2>后端控制台日志</h2><pre><span class="proc">2026-11-24T23:21:29.315 [io-8080-exec-10] c.b.messaging.OrderEventProducer         : 订单事件已投递 queueId=527593df-c482-490d-9cfb-7f46c2ecee88 topic=order-events partition=0 offset=0</span>
+<span class="proc">2026-11-24T23:21:29.317 [ntainer#0-0-C-1] c.b.messaging.OrderEventConsumer         : 消费订单事件 key=527593df-c482-490d-9cfb-7f46c2ecee88 partition=0 offset=0 thread=org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1</span>
+<span class="proc">2026-11-24T23:21:29.329 [ntainer#0-0-C-1] com.bookstore.messaging.OrderSseHub      : SSE 推送 queueId=527593df-c482-490d-9cfb-7f46c2ecee88 status=PROCESSING</span>
+<span class="ok">2026-11-24T23:21:32.486 [ntainer#0-0-C-1] c.b.messaging.OrderEventConsumer         : 订单处理完成 queueId=527593df-c482-490d-9cfb-7f46c2ecee88 status=SUCCESS message=下单成功，库存已扣减</span>
+<span class="ok">2026-11-24T23:21:32.494 [ntainer#0-0-C-1] com.bookstore.messaging.OrderSseHub      : SSE 推送 queueId=527593df-c482-490d-9cfb-7f46c2ecee88 status=SUCCESS</span>
+<span class="proc">2026-11-24T23:21:32.797 [nio-8080-exec-9] c.b.messaging.OrderEventProducer         : 订单事件已投递 queueId=599ec9a4-0e12-47d7-846f-135a0f0bbb3f topic=order-events partition=0 offset=1</span>
+<span class="proc">2026-11-24T23:21:32.798 [ntainer#0-0-C-1] c.b.messaging.OrderEventConsumer         : 消费订单事件 key=599ec9a4-0e12-47d7-846f-135a0f0bbb3f partition=0 offset=1 thread=org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1</span>
+<span class="proc">2026-11-24T23:21:32.799 [ntainer#0-0-C-1] com.bookstore.messaging.OrderSseHub      : SSE 推送 queueId=599ec9a4-0e12-47d7-846f-135a0f0bbb3f status=PROCESSING</span>
+<span class="bad">2026-11-24T23:21:35.809 [ntainer#0-0-C-1] c.b.messaging.OrderEventConsumer         : 订单处理完成 queueId=599ec9a4-0e12-47d7-846f-135a0f0bbb3f status=FAILED message=《人类简史：从动物到上帝》库存不足，剩余 77 本</span>
+<span class="bad">2026-11-24T23:21:35.810 [ntainer#0-0-C-1] com.bookstore.messaging.OrderSseHub      : SSE 推送 queueId=599ec9a4-0e12-47d7-846f-135a0f0bbb3f status=FAILED</span></pre><h2>kafka-console-consumer.sh --topic order-events</h2><pre><span class="sec">######## Kafka topic order-events 中的订单事件 JSON</span>
+{&quot;queueId&quot;:&quot;527593df-c482-490d-9cfb-7f46c2ecee88&quot;,&quot;userId&quot;:2,&quot;username&quot;:&quot;admin&quot;,&quot;shipping&quot;:{&quot;receiver&quot;:&quot;张三&quot;,&quot;phone&quot;:&quot;13800138000&quot;,&quot;province&quot;:&quot;上海&quot;,&quot;city&quot;:&quot;上海&quot;,&quot;address&quot;:&quot;东川路800号&quot;,&quot;note&quot;:null,&quot;payment&quot;:&quot;wechat&quot;},&quot;items&quot;:[{&quot;bookId&quot;:1,&quot;quantity&quot;:1}],&quot;submittedAt&quot;:&quot;2026-11-24T23:21:28.873419&quot;}
+{&quot;queueId&quot;:&quot;599ec9a4-0e12-47d7-846f-135a0f0bbb3f&quot;,&quot;userId&quot;:2,&quot;username&quot;:&quot;admin&quot;,&quot;shipping&quot;:{&quot;receiver&quot;:&quot;张三&quot;,&quot;phone&quot;:&quot;13800138000&quot;,&quot;province&quot;:&quot;上海&quot;,&quot;city&quot;:&quot;上海&quot;,&quot;address&quot;:&quot;东川路800号&quot;,&quot;note&quot;:null,&quot;payment&quot;:&quot;wechat&quot;},&quot;items&quot;:[{&quot;bookId&quot;:2,&quot;quantity&quot;:99}],&quot;submittedAt&quot;:&quot;2026-11-24T23:21:32.780627&quot;}</pre></div></body></html>

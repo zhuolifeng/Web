@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw5 正常下单：POST /api/orders 立即 202，SSE 约 3 秒后推送 SUCCESS</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:13px/1.5 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+h2{font:600 14px -apple-system,sans-serif;margin:16px 0 6px;color:#c084fc}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre-wrap;word-break:break-all;margin:0;background:#161a21;border:1px solid #262c36;border-radius:6px;padding:12px}
+.sec{color:#c084fc;font-weight:700}.ok{color:#4ade80;font-weight:700}.bad{color:#f87171;font-weight:700}
+.acc{color:#fbbf24;font-weight:700}.proc{color:#60a5fa}.dim{color:#6b7280}
+</style></head><body><div class='wrap'><h1>hw5 正常下单：POST /api/orders 立即 202，SSE 约 3 秒后推送 SUCCESS</h1><div class='sub'>scripts/demo_async_order.sh 实际输出（BOOK_ID=1 QTY=1）</div><pre><span class="sec">######## 场景 1：正常下单（bookId=1, qty=1）→ SSE 推送 SUCCESS</span>
+<span class="sec">== 1. 登录</span>
+token=eyJhbGciOiJIUzM4NCJ9...
+<span class="sec">== 2. 加入购物车 bookId=1 qty=1</span>
+{&quot;code&quot;:200,&quot;message&quot;:&quot;已加入购物车&quot;,&quot;data&quot;:{&quot;id&quot;:19,&quot;userId&quot;:2,&quot;bookId&quot;:1,&quot;quantity&quot;:1,&quot;createdAt&quot;:&quot;2026-11-24T23:21:28.709438&quot;}}
+<span class="sec">== 3. 提交订单（应立即返回 202 Accepted）</span>
+<span class="acc">HTTP/1.1 202 </span>
+Content-Type: application/json
+
+<span class="acc">{&quot;code&quot;:200,&quot;message&quot;:&quot;订单已受理，正在排队处理&quot;,&quot;data&quot;:{&quot;queueId&quot;:&quot;527593df-c482-490d-9cfb-7f46c2ecee88&quot;,&quot;status&quot;:&quot;QUEUED&quot;,&quot;streamUrl&quot;:&quot;/api/orders/527593df-c482-490d-9cfb-7f46c2ecee88/stream&quot;}}</span>
+<span class="acc">POST 耗时 527 ms</span>
+<span class="sec">== 4. 订阅 SSE /api/orders/527593df-c482-490d-9cfb-7f46c2ecee88/stream（处理完成后服务端自动关闭连接）</span>
+<span class="proc">[23:21:29] id:527593df-c482-490d-9cfb-7f46c2ecee88-PROCESSING</span>
+[23:21:29] event:order-status
+<span class="proc">[23:21:29] data:{&quot;queueId&quot;:&quot;527593df-c482-490d-9cfb-7f46c2ecee88&quot;,&quot;status&quot;:&quot;PROCESSING&quot;,&quot;message&quot;:&quot;正在扣减库存…&quot;,&quot;orderId&quot;:null,&quot;orderNo&quot;:null,&quot;totalAmount&quot;:null,&quot;timestamp&quot;:&quot;2026-11-24T23:21:29.329006&quot;}</span>
+[23:21:29] 
+<span class="ok">[23:21:32] id:527593df-c482-490d-9cfb-7f46c2ecee88-SUCCESS</span>
+[23:21:32] event:order-status
+<span class="ok">[23:21:32] data:{&quot;queueId&quot;:&quot;527593df-c482-490d-9cfb-7f46c2ecee88&quot;,&quot;status&quot;:&quot;SUCCESS&quot;,&quot;message&quot;:&quot;下单成功，库存已扣减&quot;,&quot;orderId&quot;:11,&quot;orderNo&quot;:&quot;20261124232132B4EEDA&quot;,&quot;totalAmount&quot;:59.00,&quot;timestamp&quot;:&quot;2026-11-24T23:21:32.486304&quot;}</span>
+[23:21:32]</pre></div></body></html>

@@ -1,0 +1,69 @@
+hw5 验证  2026-11-24 23:21:27  BASE=http://localhost:8080
+
+######## 场景 1：正常下单（bookId=1, qty=1）→ SSE 推送 SUCCESS
+== 1. 登录
+token=eyJhbGciOiJIUzM4NCJ9...
+== 2. 加入购物车 bookId=1 qty=1
+{"code":200,"message":"已加入购物车","data":{"id":19,"userId":2,"bookId":1,"quantity":1,"createdAt":"2026-11-24T23:21:28.709438"}}
+== 3. 提交订单（应立即返回 202 Accepted）
+HTTP/1.1 202 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 25 Nov 2026 07:21:28 GMT
+
+{"code":200,"message":"订单已受理，正在排队处理","data":{"queueId":"527593df-c482-490d-9cfb-7f46c2ecee88","status":"QUEUED","streamUrl":"/api/orders/527593df-c482-490d-9cfb-7f46c2ecee88/stream"}}
+POST 耗时 527 ms
+== 4. 订阅 SSE /api/orders/527593df-c482-490d-9cfb-7f46c2ecee88/stream（处理完成后服务端自动关闭连接）
+[23:21:29] id:527593df-c482-490d-9cfb-7f46c2ecee88-PROCESSING
+[23:21:29] event:order-status
+[23:21:29] data:{"queueId":"527593df-c482-490d-9cfb-7f46c2ecee88","status":"PROCESSING","message":"正在扣减库存…","orderId":null,"orderNo":null,"totalAmount":null,"timestamp":"2026-11-24T23:21:29.329006"}
+[23:21:29] 
+[23:21:32] id:527593df-c482-490d-9cfb-7f46c2ecee88-SUCCESS
+[23:21:32] event:order-status
+[23:21:32] data:{"queueId":"527593df-c482-490d-9cfb-7f46c2ecee88","status":"SUCCESS","message":"下单成功，库存已扣减","orderId":11,"orderNo":"20261124232132B4EEDA","totalAmount":59.00,"timestamp":"2026-11-24T23:21:32.486304"}
+[23:21:32] 
+
+######## 场景 2：库存不足（bookId=2, qty=9999）→ SSE 推送 FAILED
+== 1. 登录
+token=eyJhbGciOiJIUzM4NCJ9...
+== 2. 加入购物车 bookId=2 qty=9999
+{"code":200,"message":"已加入购物车","data":{"id":20,"userId":2,"bookId":2,"quantity":99,"createdAt":"2026-11-24T23:21:32.683811"}}
+== 3. 提交订单（应立即返回 202 Accepted）
+HTTP/1.1 202 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 25 Nov 2026 07:21:32 GMT
+
+{"code":200,"message":"订单已受理，正在排队处理","data":{"queueId":"599ec9a4-0e12-47d7-846f-135a0f0bbb3f","status":"QUEUED","streamUrl":"/api/orders/599ec9a4-0e12-47d7-846f-135a0f0bbb3f/stream"}}
+POST 耗时 116 ms
+== 4. 订阅 SSE /api/orders/599ec9a4-0e12-47d7-846f-135a0f0bbb3f/stream（处理完成后服务端自动关闭连接）
+[23:21:32] id:599ec9a4-0e12-47d7-846f-135a0f0bbb3f-PROCESSING
+[23:21:32] event:order-status
+[23:21:32] data:{"queueId":"599ec9a4-0e12-47d7-846f-135a0f0bbb3f","status":"PROCESSING","message":"正在扣减库存…","orderId":null,"orderNo":null,"totalAmount":null,"timestamp":"2026-11-24T23:21:32.799325"}
+[23:21:32] 
+[23:21:35] id:599ec9a4-0e12-47d7-846f-135a0f0bbb3f-FAILED
+[23:21:35] event:order-status
+[23:21:35] data:{"queueId":"599ec9a4-0e12-47d7-846f-135a0f0bbb3f","status":"FAILED","message":"《人类简史：从动物到上帝》库存不足，剩余 77 本","orderId":null,"orderNo":null,"totalAmount":null,"timestamp":"2026-11-24T23:21:35.809691"}
+[23:21:35] 
+
+######## Kafka topic order-events 中的订单事件 JSON
+{"queueId":"527593df-c482-490d-9cfb-7f46c2ecee88","userId":2,"username":"admin","shipping":{"receiver":"张三","phone":"13800138000","province":"上海","city":"上海","address":"东川路800号","note":null,"payment":"wechat"},"items":[{"bookId":1,"quantity":1}],"submittedAt":"2026-11-24T23:21:28.873419"}
+{"queueId":"599ec9a4-0e12-47d7-846f-135a0f0bbb3f","userId":2,"username":"admin","shipping":{"receiver":"张三","phone":"13800138000","province":"上海","city":"上海","address":"东川路800号","note":null,"payment":"wechat"},"items":[{"bookId":2,"quantity":99}],"submittedAt":"2026-11-24T23:21:32.780627"}

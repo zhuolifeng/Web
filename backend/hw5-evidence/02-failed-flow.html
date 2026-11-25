@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw5 库存不足：消费者处理失败，SSE 推送 FAILED</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:13px/1.5 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+h2{font:600 14px -apple-system,sans-serif;margin:16px 0 6px;color:#c084fc}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre-wrap;word-break:break-all;margin:0;background:#161a21;border:1px solid #262c36;border-radius:6px;padding:12px}
+.sec{color:#c084fc;font-weight:700}.ok{color:#4ade80;font-weight:700}.bad{color:#f87171;font-weight:700}
+.acc{color:#fbbf24;font-weight:700}.proc{color:#60a5fa}.dim{color:#6b7280}
+</style></head><body><div class='wrap'><h1>hw5 库存不足：消费者处理失败，SSE 推送 FAILED</h1><div class='sub'>scripts/demo_async_order.sh 实际输出（BOOK_ID=2 QTY=9999）</div><pre><span class="sec">######## 场景 2：库存不足（bookId=2, qty=9999）→ SSE 推送 FAILED</span>
+<span class="sec">== 1. 登录</span>
+token=eyJhbGciOiJIUzM4NCJ9...
+<span class="sec">== 2. 加入购物车 bookId=2 qty=9999</span>
+{&quot;code&quot;:200,&quot;message&quot;:&quot;已加入购物车&quot;,&quot;data&quot;:{&quot;id&quot;:20,&quot;userId&quot;:2,&quot;bookId&quot;:2,&quot;quantity&quot;:99,&quot;createdAt&quot;:&quot;2026-11-24T23:21:32.683811&quot;}}
+<span class="sec">== 3. 提交订单（应立即返回 202 Accepted）</span>
+<span class="acc">HTTP/1.1 202 </span>
+Content-Type: application/json
+
+<span class="acc">{&quot;code&quot;:200,&quot;message&quot;:&quot;订单已受理，正在排队处理&quot;,&quot;data&quot;:{&quot;queueId&quot;:&quot;599ec9a4-0e12-47d7-846f-135a0f0bbb3f&quot;,&quot;status&quot;:&quot;QUEUED&quot;,&quot;streamUrl&quot;:&quot;/api/orders/599ec9a4-0e12-47d7-846f-135a0f0bbb3f/stream&quot;}}</span>
+<span class="acc">POST 耗时 116 ms</span>
+<span class="sec">== 4. 订阅 SSE /api/orders/599ec9a4-0e12-47d7-846f-135a0f0bbb3f/stream（处理完成后服务端自动关闭连接）</span>
+<span class="proc">[23:21:32] id:599ec9a4-0e12-47d7-846f-135a0f0bbb3f-PROCESSING</span>
+[23:21:32] event:order-status
+<span class="proc">[23:21:32] data:{&quot;queueId&quot;:&quot;599ec9a4-0e12-47d7-846f-135a0f0bbb3f&quot;,&quot;status&quot;:&quot;PROCESSING&quot;,&quot;message&quot;:&quot;正在扣减库存…&quot;,&quot;orderId&quot;:null,&quot;orderNo&quot;:null,&quot;totalAmount&quot;:null,&quot;timestamp&quot;:&quot;2026-11-24T23:21:32.799325&quot;}</span>
+[23:21:32] 
+<span class="bad">[23:21:35] id:599ec9a4-0e12-47d7-846f-135a0f0bbb3f-FAILED</span>
+[23:21:35] event:order-status
+<span class="bad">[23:21:35] data:{&quot;queueId&quot;:&quot;599ec9a4-0e12-47d7-846f-135a0f0bbb3f&quot;,&quot;status&quot;:&quot;FAILED&quot;,&quot;message&quot;:&quot;《人类简史：从动物到上帝》库存不足，剩余 77 本&quot;,&quot;orderId&quot;:null,&quot;orderNo&quot;:null,&quot;totalAmount&quot;:null,&quot;timestamp&quot;:&quot;2026-11-24T23:21:35.809691&quot;}</span>
+[23:21:35]</pre></div></body></html>
