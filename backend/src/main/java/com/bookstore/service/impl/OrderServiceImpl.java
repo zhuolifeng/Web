@@ -1,5 +1,6 @@
 package com.bookstore.service.impl;
 
+import com.bookstore.cache.BookCache;
 import com.bookstore.dto.OrderCreateRequest;
 import com.bookstore.dto.OrderDto;
 import com.bookstore.dto.OrderEvent;
@@ -39,15 +40,18 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final CartItemRepository cartItemRepository;
     private final BookRepository bookRepository;
+    private final BookCache bookCache;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
                             CartItemRepository cartItemRepository,
-                            BookRepository bookRepository) {
+                            BookRepository bookRepository,
+                            BookCache bookCache) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.cartItemRepository = cartItemRepository;
         this.bookRepository = bookRepository;
+        this.bookCache = bookCache;
     }
 
     @Override
@@ -113,6 +117,8 @@ public class OrderServiceImpl implements OrderService {
             }
             book.setStock(book.getStock() - ci.getQuantity());
             bookRepository.save(book);
+            // 库存变化 → 详情缓存失效（事务提交后删除）
+            bookCache.evictAfterCommit(book.getId());
 
             BigDecimal unit = parsePrice(book.getPrice());
             BigDecimal subtotal = unit.multiply(BigDecimal.valueOf(ci.getQuantity()));

@@ -1,11 +1,13 @@
 package com.bookstore.controller;
 
+import com.bookstore.cache.BookCache;
 import com.bookstore.dto.ApiResponse;
 import com.bookstore.dto.BookDto;
 import com.bookstore.service.BookService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 书籍相关 REST 接口。
@@ -18,9 +20,11 @@ import java.util.List;
 public class BookController {
 
     private final BookService bookService;
+    private final BookCache bookCache;
 
-    public BookController(BookService bookService) {
+    public BookController(BookService bookService, BookCache bookCache) {
         this.bookService = bookService;
+        this.bookCache = bookCache;
     }
 
     /** GET /api/v1/books — 获取所有书籍列表，支持按关键词搜索 */
@@ -32,7 +36,10 @@ public class BookController {
         return ApiResponse.ok(bookService.listAll());
     }
 
-    /** GET /api/v1/book/{id} — 获取单本书籍详情 */
+    /**
+     * GET /api/v1/book/{id} — 获取单本书籍详情。
+     * hw7：Redis 旁路缓存（BookCache）+ Sentinel 限流（QPS 超阈值返回 429，规则见 SentinelRuleConfig）。
+     */
     @GetMapping("/book/{id}")
     public ApiResponse<BookDto> getOne(@PathVariable Long id) {
         return ApiResponse.ok(bookService.getById(id));
@@ -55,5 +62,18 @@ public class BookController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         bookService.delete(id);
         return ApiResponse.ok("删除成功", null);
+    }
+
+    /** GET /api/v1/admin/books/cache-stats — hw7：查看图书详情缓存统计（命中/空对象命中/查库次数等） */
+    @GetMapping("/admin/books/cache-stats")
+    public ApiResponse<Map<String, Long>> cacheStats() {
+        return ApiResponse.ok(bookCache.stats());
+    }
+
+    /** DELETE /api/v1/admin/books/cache-stats — hw7：清零缓存统计 */
+    @DeleteMapping("/admin/books/cache-stats")
+    public ApiResponse<Void> resetCacheStats() {
+        bookCache.resetStats();
+        return ApiResponse.ok("已清零", null);
     }
 }

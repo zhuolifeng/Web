@@ -1,5 +1,6 @@
 package com.bookstore.service.impl;
 
+import com.bookstore.cache.BookCache;
 import com.bookstore.dto.OrderCreateRequest;
 import com.bookstore.dto.OrderDto;
 import com.bookstore.dto.OrderEvent;
@@ -44,6 +45,8 @@ class OrderServiceImplTest {
     private CartItemRepository cartItemRepository;
     @Mock
     private BookRepository bookRepository;
+    @Mock
+    private BookCache bookCache;
 
     @InjectMocks
     private OrderServiceImpl orderService;

@@ -1,0 +1,72 @@
+hw7 验证  2026-11-24 22:58:29  BASE=http://localhost:8080
+Redis PING: PONG
+
+==================== 1. Cache-Aside 读：首次未命中查库并回写，再次命中缓存 ====================
+> 清空 bookstore:book:detail:1 后，Redis 中是否存在: 0
+> 两次 GET /api/v1/book/1 → HTTP 200, 200
+> Redis GET bookstore:book:detail:1: {"id":1,"title":"百年孤独","author":"加西亚·马尔克斯","category":"文学小说","badge":"热销","stars":"★★★★★","ratingNum":"4.9","ratingCount...
+> Redis TTL bookstore:book:detail:1: 1931 秒（1800 + 0~300 随机抖动）
+> 缓存统计: {'hits': 1, 'nullHits': 0, 'misses': 1, 'dbLoads': 1, 'lockWaits': 0, 'redisFallbacks': 0}
+[PASS] 第一次查库(dbLoads=1)，第二次命中缓存(hits>=1)
+
+==================== 2. 防缓存穿透：不存在的 id 缓存空对象 ====================
+> GET /api/v1/book/999999 → {"code":404,"message":"书籍不存在: id=999999","data":null} (HTTP 404)
+> GET /api/v1/book/999999 → {"code":404,"message":"书籍不存在: id=999999","data":null} (HTTP 404)
+> GET /api/v1/book/999999 → {"code":404,"message":"书籍不存在: id=999999","data":null} (HTTP 404)
+> Redis GET bookstore:book:detail:999999: __NULL__   TTL: 119 秒
+> 缓存统计: {'hits': 0, 'nullHits': 2, 'misses': 1, 'dbLoads': 1, 'lockWaits': 0, 'redisFallbacks': 0}
+[PASS] 3 次请求只查库 1 次，后 2 次命中空对象
+> 非法 id（-1）直接 404，不访问缓存: {"code":404,"message":"书籍不存在: id=-1","data":null} (HTTP 404)
+
+==================== 3. Cache-Aside 写：更新数据库后删除缓存 ====================
+> 更新前 Redis EXISTS bookstore:book:detail:1: 1
+> PUT /api/v1/admin/books/1（原样写回）→ HTTP 200
+> 更新后 Redis EXISTS bookstore:book:detail:1: 0
+[PASS] 写操作提交后缓存已删除，下次读取将重建
+
+==================== 4. 防缓存击穿：并发重建只允许一个线程查库（JUnit + 真实 Redis） ====================
+> mvn -Dtest=BookCacheRedisTest test（100 线程并发访问冷 key，断言 dbCalls == 1）：
+  [防击穿] 并发线程=100, 全部拿到正确结果, 实际查库次数=1, 等锁线程数=99, 统计={hits=99, nullHits=0, misses=100, dbLoads=1, lockWaits=99, redisFallbacks=0}
+  Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.072 s -- in com.bookstore.cache.BookCacheRedisTest
+[PASS] BookCacheRedisTest 全部通过：并发 100 线程只有 1 个线程获得锁并查库
+
+==================== 5. Sentinel 限流：GET /api/v1/book/{id} QPS<=5，超出返回 429 ====================
+目标   : GET http://localhost:8080/api/v1/book/1
+模式   : 匀速 20 req/s × 5s，并发线程 20
+总请求 : 100    耗时 4.96s    实际吞吐 20.2 req/s
+延迟   : p50=3.8ms  p99=14.9ms  max=26.0ms
+状态码分布:
+  HTTP 200  OK                      27  (27.0%)
+  HTTP 429  Too Many Requests       73  (73.0%)
+按秒统计 (第 N 秒: 成功 200 / 限流 429):
+  第 0 秒: 200 × 7    429 × 13   其他 × 0
+  第 1 秒: 200 × 5    429 × 15   其他 × 0
+  第 2 秒: 200 × 5    429 × 15   其他 × 0
+  第 3 秒: 200 × 5    429 × 15   其他 × 0
+  第 4 秒: 200 × 5    429 × 15   其他 × 0
+HTTP 429 响应体示例: {"code":429,"message":"请求过于频繁，已被限流（Too Many Requests），请稍后重试","data":null}
+HTTP 200 响应体示例: {"code":200,"message":"success","data":{"id":1,"title":"百年孤独","author":"加西亚·马尔克斯","category":"文学小说","badge":"热销","stars":"★★★★★","ratingNum":"4.9","ratingCount"...
+
+目标   : GET http://localhost:8080/api/v1/book/1
+模式   : 突发 100 个请求，并发线程 50
+总请求 : 100    耗时 0.05s    实际吞吐 1906.8 req/s
+延迟   : p50=10.8ms  p99=45.2ms  max=46.5ms
+状态码分布:
+  HTTP 200  OK                       5  (5.0%)
+  HTTP 429  Too Many Requests       95  (95.0%)
+按秒统计 (第 N 秒: 成功 200 / 限流 429):
+  第 0 秒: 200 × 5    429 × 95   其他 × 0
+HTTP 429 响应体示例: {"code":429,"message":"请求过于频繁，已被限流（Too Many Requests），请稍后重试","data":null}
+HTTP 200 响应体示例: {"code":200,"message":"success","data":{"id":1,"title":"百年孤独","author":"加西亚·马尔克斯","category":"文学小说","badge":"热销","stars":"★★★★★","ratingNum":"4.9","ratingCount"...
+[PASS] 突发 100 个并发请求中 95 个被限流返回 HTTP 429
+
+==================== 6. 对照：未配置限流规则的列表接口不受影响 ====================
+目标   : GET http://localhost:8080/api/v1/books
+模式   : 突发 30 个请求，并发线程 10
+总请求 : 30    耗时 0.05s    实际吞吐 571.0 req/s
+延迟   : p50=6.3ms  p99=40.2ms  max=40.6ms
+状态码分布:
+  HTTP 200  OK                      30  (100.0%)
+按秒统计 (第 N 秒: 成功 200 / 限流 429):
+
+全部检查通过

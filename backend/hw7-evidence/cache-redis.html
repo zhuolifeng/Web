@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw7 Redis Cache-Aside / 防穿透 / 写后删缓存</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:13px/1.5 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre-wrap;word-break:break-all;margin:0;background:#161a21;border:1px solid #262c36;border-radius:6px;padding:12px}
+.pass{color:#4ade80;font-weight:700}.fail{color:#f87171;font-weight:700}
+.sec{color:#c084fc;font-weight:700}.r429{color:#fbbf24;font-weight:700}.ok{color:#4ade80}
+</style></head><body><div class='wrap'><h1>hw7 Redis Cache-Aside / 防穿透 / 写后删缓存</h1><div class='sub'>scripts/hw7_verify.sh 实际输出（用例 1~4）</div><pre><span class="sec">==================== 1. Cache-Aside 读：首次未命中查库并回写，再次命中缓存 ====================</span>
+&gt; 清空 bookstore:book:detail:1 后，Redis 中是否存在: 0
+<span class="ok">&gt; 两次 GET /api/v1/book/1 → HTTP 200, 200</span>
+&gt; Redis GET bookstore:book:detail:1: {&quot;id&quot;:1,&quot;title&quot;:&quot;百年孤独&quot;,&quot;author&quot;:&quot;加西亚·马尔克斯&quot;,&quot;category&quot;:&quot;文学小说&quot;,&quot;badge&quot;:&quot;热销&quot;,&quot;stars&quot;:&quot;★★★★★&quot;,&quot;ratingNum&quot;:&quot;4.9&quot;,&quot;ratingCount...
+&gt; Redis TTL bookstore:book:detail:1: 1931 秒（1800 + 0~300 随机抖动）
+&gt; 缓存统计: {&#x27;hits&#x27;: 1, &#x27;nullHits&#x27;: 0, &#x27;misses&#x27;: 1, &#x27;dbLoads&#x27;: 1, &#x27;lockWaits&#x27;: 0, &#x27;redisFallbacks&#x27;: 0}
+<span class="pass">[PASS] 第一次查库(dbLoads=1)，第二次命中缓存(hits&gt;=1)</span>
+
+<span class="sec">==================== 2. 防缓存穿透：不存在的 id 缓存空对象 ====================</span>
+&gt; GET /api/v1/book/999999 → {&quot;code&quot;:404,&quot;message&quot;:&quot;书籍不存在: id=999999&quot;,&quot;data&quot;:null} (HTTP 404)
+&gt; GET /api/v1/book/999999 → {&quot;code&quot;:404,&quot;message&quot;:&quot;书籍不存在: id=999999&quot;,&quot;data&quot;:null} (HTTP 404)
+&gt; GET /api/v1/book/999999 → {&quot;code&quot;:404,&quot;message&quot;:&quot;书籍不存在: id=999999&quot;,&quot;data&quot;:null} (HTTP 404)
+&gt; Redis GET bookstore:book:detail:999999: __NULL__   TTL: 119 秒
+&gt; 缓存统计: {&#x27;hits&#x27;: 0, &#x27;nullHits&#x27;: 2, &#x27;misses&#x27;: 1, &#x27;dbLoads&#x27;: 1, &#x27;lockWaits&#x27;: 0, &#x27;redisFallbacks&#x27;: 0}
+<span class="pass">[PASS] 3 次请求只查库 1 次，后 2 次命中空对象</span>
+&gt; 非法 id（-1）直接 404，不访问缓存: {&quot;code&quot;:404,&quot;message&quot;:&quot;书籍不存在: id=-1&quot;,&quot;data&quot;:null} (HTTP 404)
+
+<span class="sec">==================== 3. Cache-Aside 写：更新数据库后删除缓存 ====================</span>
+&gt; 更新前 Redis EXISTS bookstore:book:detail:1: 1
+<span class="ok">&gt; PUT /api/v1/admin/books/1（原样写回）→ HTTP 200</span>
+&gt; 更新后 Redis EXISTS bookstore:book:detail:1: 0
+<span class="pass">[PASS] 写操作提交后缓存已删除，下次读取将重建</span>
+
+<span class="sec">==================== 4. 防缓存击穿：并发重建只允许一个线程查库（JUnit + 真实 Redis） ====================</span>
+&gt; mvn -Dtest=BookCacheRedisTest test（100 线程并发访问冷 key，断言 dbCalls == 1）：
+  [防击穿] 并发线程=100, 全部拿到正确结果, 实际查库次数=1, 等锁线程数=99, 统计={hits=99, nullHits=0, misses=100, dbLoads=1, lockWaits=99, redisFallbacks=0}
+  Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.072 s -- in com.bookstore.cache.BookCacheRedisTest
+<span class="pass">[PASS] BookCacheRedisTest 全部通过：并发 100 线程只有 1 个线程获得锁并查库</span></pre></div></body></html>

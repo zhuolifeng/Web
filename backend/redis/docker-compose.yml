@@ -1,0 +1,9 @@
+# hw7：本地单节点 Redis（也可以 brew install redis && brew services start redis）
+# 启动：docker compose -f redis/docker-compose.yml up -d
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: bookstore-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no", "--save", ""]

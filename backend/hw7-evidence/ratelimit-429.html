@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw7 并发压测：GET /api/v1/book/{id} 超出 5 QPS 返回 HTTP 429</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:13px/1.5 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre-wrap;word-break:break-all;margin:0;background:#161a21;border:1px solid #262c36;border-radius:6px;padding:12px}
+.pass{color:#4ade80;font-weight:700}.fail{color:#f87171;font-weight:700}
+.sec{color:#c084fc;font-weight:700}.r429{color:#fbbf24;font-weight:700}.ok{color:#4ade80}
+</style></head><body><div class='wrap'><h1>hw7 并发压测：GET /api/v1/book/{id} 超出 5 QPS 返回 HTTP 429</h1><div class='sub'>scripts/hw7_loadtest.py 并发压测实际输出（Sentinel 限流规则 QPS ≤ 5）</div><pre><span class="sec">==================== 5. Sentinel 限流：GET /api/v1/book/{id} QPS&lt;=5，超出返回 429 ====================</span>
+目标   : GET http://localhost:8080/api/v1/book/1
+模式   : 匀速 20 req/s × 5s，并发线程 20
+总请求 : 100    耗时 4.96s    实际吞吐 20.2 req/s
+延迟   : p50=3.8ms  p99=14.9ms  max=26.0ms
+状态码分布:
+<span class="ok">  HTTP 200  OK                      27  (27.0%)</span>
+<span class="r429">  HTTP 429  Too Many Requests       73  (73.0%)</span>
+<span class="r429">按秒统计 (第 N 秒: 成功 200 / 限流 429):</span>
+<span class="r429">  第 0 秒: 200 × 7    429 × 13   其他 × 0</span>
+<span class="r429">  第 1 秒: 200 × 5    429 × 15   其他 × 0</span>
+<span class="r429">  第 2 秒: 200 × 5    429 × 15   其他 × 0</span>
+<span class="r429">  第 3 秒: 200 × 5    429 × 15   其他 × 0</span>
+<span class="r429">  第 4 秒: 200 × 5    429 × 15   其他 × 0</span>
+<span class="r429">HTTP 429 响应体示例: {&quot;code&quot;:429,&quot;message&quot;:&quot;请求过于频繁，已被限流（Too Many Requests），请稍后重试&quot;,&quot;data&quot;:null}</span>
+<span class="ok">HTTP 200 响应体示例: {&quot;code&quot;:200,&quot;message&quot;:&quot;success&quot;,&quot;data&quot;:{&quot;id&quot;:1,&quot;title&quot;:&quot;百年孤独&quot;,&quot;author&quot;:&quot;加西亚·马尔克斯&quot;,&quot;category&quot;:&quot;文学小说&quot;,&quot;badge&quot;:&quot;热销&quot;,&quot;stars&quot;:&quot;★★★★★&quot;,&quot;ratingNum&quot;:&quot;4.9&quot;,&quot;ratingCount&quot;...</span>
+
+目标   : GET http://localhost:8080/api/v1/book/1
+模式   : 突发 100 个请求，并发线程 50
+总请求 : 100    耗时 0.05s    实际吞吐 1906.8 req/s
+延迟   : p50=10.8ms  p99=45.2ms  max=46.5ms
+状态码分布:
+<span class="ok">  HTTP 200  OK                       5  (5.0%)</span>
+<span class="r429">  HTTP 429  Too Many Requests       95  (95.0%)</span>
+<span class="r429">按秒统计 (第 N 秒: 成功 200 / 限流 429):</span>
+<span class="r429">  第 0 秒: 200 × 5    429 × 95   其他 × 0</span>
+<span class="r429">HTTP 429 响应体示例: {&quot;code&quot;:429,&quot;message&quot;:&quot;请求过于频繁，已被限流（Too Many Requests），请稍后重试&quot;,&quot;data&quot;:null}</span>
+<span class="ok">HTTP 200 响应体示例: {&quot;code&quot;:200,&quot;message&quot;:&quot;success&quot;,&quot;data&quot;:{&quot;id&quot;:1,&quot;title&quot;:&quot;百年孤独&quot;,&quot;author&quot;:&quot;加西亚·马尔克斯&quot;,&quot;category&quot;:&quot;文学小说&quot;,&quot;badge&quot;:&quot;热销&quot;,&quot;stars&quot;:&quot;★★★★★&quot;,&quot;ratingNum&quot;:&quot;4.9&quot;,&quot;ratingCount&quot;...</span>
+<span class="pass">[PASS] 突发 100 个并发请求中 95 个被限流返回 HTTP 429</span></pre></div></body></html>

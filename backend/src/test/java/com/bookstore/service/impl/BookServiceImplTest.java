@@ -1,5 +1,6 @@
 package com.bookstore.service.impl;
 
+import com.bookstore.cache.BookCache;
 import com.bookstore.dto.BookDto;
 import com.bookstore.entity.Book;
 import com.bookstore.exception.BusinessException;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -30,6 +32,9 @@ class BookServiceImplTest {
 
     @Mock
     private BookRepository bookRepository;
+
+    @Mock
+    private BookCache bookCache;
 
     @InjectMocks
     private BookServiceImpl bookService;
@@ -67,9 +72,17 @@ class BookServiceImplTest {
         verify(bookRepository, times(1)).findAll();
     }
 
+    /** 让 mock 的缓存直接回源（模拟缓存未命中） */
+    @SuppressWarnings("unchecked")
+    private void cacheMissPassThrough() {
+        when(bookCache.getOrLoad(anyLong(), any())).thenAnswer(inv ->
+                ((Function<Long, Optional<BookDto>>) inv.getArgument(1)).apply(inv.getArgument(0)));
+    }
+
     @Test
     @DisplayName("getById - 书籍存在时返回DTO")
     void testGetByIdFound() {
+        cacheMissPassThrough();
         when(bookRepository.findById(1L)).thenReturn(Optional.of(sampleBook));
 
         BookDto result = bookService.getById(1L);
@@ -82,11 +95,31 @@ class BookServiceImplTest {
     @Test
     @DisplayName("getById - 书籍不存在时抛出异常")
     void testGetByIdNotFound() {
+        cacheMissPassThrough();
         when(bookRepository.findById(99L)).thenReturn(Optional.empty());
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> bookService.getById(99L));
         assertEquals(404, exception.getCode());
+    }
+
+    @Test
+    @DisplayName("getById - 缓存命中时不查数据库")
+    void testGetByIdCacheHit() {
+        when(bookCache.getOrLoad(eq(1L), any())).thenReturn(Optional.of(BookDto.from(sampleBook)));
+
+        BookDto result = bookService.getById(1L);
+
+        assertEquals("百年孤独", result.getTitle());
+        verifyNoInteractions(bookRepository);
+    }
+
+    @Test
+    @DisplayName("getById - 非法 id 直接返回 404，不访问缓存和数据库")
+    void testGetByIdInvalid() {
+        BusinessException ex = assertThrows(BusinessException.class, () -> bookService.getById(-1L));
+        assertEquals(404, ex.getCode());
+        verifyNoInteractions(bookCache, bookRepository);
     }
 
     @Test
@@ -151,6 +184,7 @@ class BookServiceImplTest {
         assertNotNull(result);
         verify(bookRepository).findById(1L);
         verify(bookRepository).save(any(Book.class));
+        verify(bookCache).evictAfterCommit(1L);
     }
 
     @Test
@@ -172,6 +206,7 @@ class BookServiceImplTest {
         bookService.delete(1L);
 
         verify(bookRepository).deleteById(1L);
+        verify(bookCache).evictAfterCommit(1L);
     }
 
     @Test
