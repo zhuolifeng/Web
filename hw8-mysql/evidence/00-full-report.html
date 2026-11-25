@@ -1,0 +1,131 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw8 全部输出</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:12px/1.45 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre;margin:0;background:#161a21;border:1px solid #262c36;border-radius:6px;padding:12px;overflow:hidden}
+.sec{color:#c084fc;font-weight:700}.sql{color:#60a5fa}
+.w{white-space:pre-wrap;word-break:break-all;display:inline-block;max-width:100%}
+.good{background:#14532d;color:#86efac;font-weight:700}.bad{background:#5f1d1d;color:#fca5a5;font-weight:700}
+.key{background:#3b2f0b;color:#fde68a;font-weight:700}
+</style></head><body><div class='wrap'><h1>hw8 全部输出</h1><div class='sub'>scripts/run_all.sh 在本机 MySQL 上的实际输出（bookstore_hw8，books 10 万行）</div><pre><span class="sec">################ hw8 EXPLAIN 分析  2026-11-24 23:03:30  MySQL 8.4.9</span>
+<span class="w"></span>
+<span class="sec">======== 0. 数据量 ========</span>
+<span class="sql w">mysql&gt; SELECT (SELECT COUNT(*) FROM books) AS books, (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM order_items) AS order_items</span>
++--------+-------+--------+-------------+
+| books  | users | orders | order_items |
++--------+-------+--------+-------------+
+| 100000 |  1000 |  10000 |       20000 |
++--------+-------+--------+-------------+
+<span class="w"></span>
+<span class="sql w">mysql&gt; SELECT category, COUNT(*) AS cnt, MIN(price) AS min_price, MAX(price) AS max_price FROM books GROUP BY category ORDER BY category</span>
++--------------+-------+-----------+-----------+
+| category     | cnt   | min_price | max_price |
++--------------+-------+-----------+-----------+
+| 历史         | 10000 |     10.00 |    199.98 |
+| 哲学         | 10000 |     10.01 |    199.99 |
+| 少儿         | 10000 |     10.01 |    199.99 |
+| 心理学       | 10000 |     10.01 |    199.99 |
+| 文学小说     | 10000 |     10.01 |    199.99 |
+| 旅行         | 10000 |     10.01 |    200.00 |
+| 科幻         | 10000 |     10.02 |    200.00 |
+| 经济管理     | 10000 |     10.02 |    200.00 |
+| 艺术         | 10000 |     10.00 |    199.98 |
+| 计算机       | 10000 |     10.00 |    199.98 |
++--------------+-------+-----------+-----------+
+<span class="w"></span>
+<span class="sec">======== 1. 建索引前 ========</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT * FROM books WHERE category = &#x27;科幻&#x27; AND price BETWEEN 50 AND 100</span>
++----+-------------+-------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows  | filtered | Extra       |
++----+-------------+-------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+|  1 | SIMPLE      | books | NULL       | <span class="bad">ALL</span>  | NULL          | NULL | NULL    | NULL | 98704 |     1.11 | Using where |
++----+-------------+-------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+<span class="w"></span>
+<span class="sec">======== 2. 创建复合索引 ========</span>
+<span class="sql w">mysql&gt; CREATE INDEX idx_category_price ON books (category, price)</span>
+<span class="w"></span>
+<span class="sql w">mysql&gt; SHOW INDEX FROM books WHERE Key_name = &#x27;idx_category_price&#x27;</span>
++-------+------------+--------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table | Non_unique | Key_name           | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++-------+------------+--------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| books |          1 | idx_category_price |            1 | category    | A         |           9 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| books |          1 | idx_category_price |            2 | price       | A         |       97115 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++-------+------------+--------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+<span class="w"></span>
+<span class="sec">======== 3. 建索引后（主查询）========</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT * FROM books WHERE category = &#x27;科幻&#x27; AND price BETWEEN 50 AND 100</span>
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+-----------------------+
+| id | select_type | table | partitions | type  | possible_keys      | key                | key_len | ref  | rows | filtered | Extra                 |
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+-----------------------+
+|  1 | SIMPLE      | books | NULL       | <span class="good">range</span> | <span class="key">idx_category_price</span> | <span class="key">idx_category_price</span> | 135     | NULL | 2609 |   100.00 | <span class="good">Using index condition</span> |
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+-----------------------+
+<span class="w"></span>
+<span class="sql w">mysql&gt; SELECT COUNT(*) AS matched_rows FROM books WHERE category = &#x27;科幻&#x27; AND price BETWEEN 50 AND 100</span>
++--------------+
+| matched_rows |
++--------------+
+|         2609 |
++--------------+
+<span class="w"></span>
+<span class="sec">======== 4. 覆盖索引 ========</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT id, category, price FROM books WHERE category = &#x27;科幻&#x27; AND price BETWEEN 50 AND 100</span>
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+--------------------------+
+| id | select_type | table | partitions | type  | possible_keys      | key                | key_len | ref  | rows | filtered | Extra                    |
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+--------------------------+
+|  1 | SIMPLE      | books | NULL       | <span class="good">range</span> | <span class="key">idx_category_price</span> | <span class="key">idx_category_price</span> | 135     | NULL | 2609 |   100.00 | <span class="good">Using where; <span class="good">Using index</span></span> |
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+--------------------------+
+<span class="w"></span>
+<span class="sec">======== 5. 排序分页（无 filesort）========</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT * FROM books WHERE category = &#x27;科幻&#x27; AND price BETWEEN 50 AND 100 ORDER BY price LIMIT 20</span>
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+-----------------------+
+| id | select_type | table | partitions | type  | possible_keys      | key                | key_len | ref  | rows | filtered | Extra                 |
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+-----------------------+
+|  1 | SIMPLE      | books | NULL       | <span class="good">range</span> | <span class="key">idx_category_price</span> | <span class="key">idx_category_price</span> | 135     | NULL | 2609 |   100.00 | <span class="good">Using index condition</span> |
++----+-------------+-------+------------+-------+--------------------+--------------------+---------+------+------+----------+-----------------------+
+<span class="w"></span>
+<span class="sec">======== 6. 反例：不满足最左前缀 ========</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT * FROM books WHERE price BETWEEN 50 AND 100</span>
++----+-------------+-------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows  | filtered | Extra       |
++----+-------------+-------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+|  1 | SIMPLE      | books | NULL       | <span class="bad">ALL</span>  | NULL          | NULL | NULL    | NULL | 98841 |    11.11 | Using where |
++----+-------------+-------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+<span class="w"></span>
+<span class="sec">======== 7. EXPLAIN ANALYZE 实际耗时：走索引 vs 全表扫描 ========</span>
+<span class="sql w">mysql&gt; EXPLAIN ANALYZE SELECT * FROM books WHERE category = &#x27;科幻&#x27; AND price BETWEEN 50 AND 100</span>
+<span class="w">-&gt; <span class="good">Index range scan on books using idx_category_price over (category = &#x27;科幻&#x27; AND 50.00 &lt;= price &lt;= 100.00), with index condition: ((books.category = &#x27;科幻&#x27;) and (books.price between 50 and 100))  (cost=1174 rows=2609) (actual time=0.0379..9.14 rows=2609 loops=1)</span></span>
+<span class="w"></span>
+<span class="w"></span>
+<span class="sql w">mysql&gt; EXPLAIN ANALYZE SELECT * FROM books IGNORE INDEX (idx_category_price) WHERE category = &#x27;科幻&#x27; AND price BETWEEN 50 AND 100</span>
+<span class="w">-&gt; Filter: ((books.category = &#x27;科幻&#x27;) and (books.price between 50 and 100))  (cost=10229 rows=1220) (actual time=0.0428..75.5 rows=2609 loops=1)</span>
+<span class="w">    -&gt; <span class="bad">Table scan on books  (cost=10229 rows=98841) (actual time=0.0378..67.3 rows=100000 loops=1)</span></span>
+<span class="w"></span>
+<span class="w"></span>
+<span class="sec">======== 8. 反范式收益：我的订单列表 ========</span>
+<span class="sql w">-- 范式化：JOIN users + JOIN order_items + GROUP BY</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT o.order_no, u.nickname, SUM(i.quantity) AS item_count, GROUP_CONCAT(i.book_title) AS titles, o.total_amount, o.created_at FROM orders o JOIN users u ON u.id = o.user_id JOIN order_items i ON i.order_id = o.id WHERE o.user_id = 42 GROUP BY o.id ORDER BY o.created_at DESC LIMIT 10</span>
++----+-------------+-------+------------+-------+----------------------------------------------+-------------------------+---------+--------------------+------+----------+---------------------------------+
+| id | select_type | table | partitions | type  | possible_keys                                | key                     | key_len | ref                | rows | filtered | Extra                           |
++----+-------------+-------+------------+-------+----------------------------------------------+-------------------------+---------+--------------------+------+----------+---------------------------------+
+|  1 | SIMPLE      | u     | NULL       | <span class="good">const</span> | <span class="key">PRIMARY</span>                                      | <span class="key">PRIMARY</span>                 | 8       | const              |    1 |   100.00 | <span class="bad">Using temporary</span>; <span class="bad">Using filesort</span> |
+|  1 | SIMPLE      | o     | NULL       | <span class="good">ref</span>   | PRIMARY,uk_orders_no,idx_orders_user_created | <span class="key">idx_orders_user_created</span> | 8       | const              |   10 |   100.00 | NULL                            |
+|  1 | SIMPLE      | i     | NULL       | <span class="good">ref</span>   | <span class="key">idx_items_order</span>                              | <span class="key">idx_items_order</span>         | 8       | bookstore_hw8.o.id |    1 |   100.00 | NULL                            |
++----+-------------+-------+------------+-------+----------------------------------------------+-------------------------+---------+--------------------+------+----------+---------------------------------+
+<span class="w"></span>
+<span class="sql w">-- 反范式：单表读取冗余字段</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT order_no, user_nickname, item_count, book_snapshot, total_amount, created_at FROM orders WHERE user_id = 42 ORDER BY created_at DESC LIMIT 10</span>
++----+-------------+--------+------------+------+-------------------------+-------------------------+---------+-------+------+----------+---------------------+
+| id | select_type | table  | partitions | type | possible_keys           | key                     | key_len | ref   | rows | filtered | Extra               |
++----+-------------+--------+------------+------+-------------------------+-------------------------+---------+-------+------+----------+---------------------+
+|  1 | SIMPLE      | orders | NULL       | <span class="good">ref</span>  | <span class="key">idx_orders_user_created</span> | <span class="key">idx_orders_user_created</span> | 8       | const |   10 |   100.00 | Backward index scan |
++----+-------------+--------+------------+------+-------------------------+-------------------------+---------+-------+------+----------+---------------------+
+<span class="w"></span>
+<span class="sql w">mysql&gt; SELECT order_no, user_nickname, item_count, book_snapshot, total_amount FROM orders WHERE user_id = 42 ORDER BY created_at DESC LIMIT 1\G</span>
+<span class="w">*************************** 1. row ***************************</span>
+<span class="w">     order_no: 20260000000000009893</span>
+<span class="w">user_nickname: 读者0042</span>
+<span class="w">   item_count: 3</span>
+<span class="w">book_snapshot: [{&quot;qty&quot;: 2, &quot;cover&quot;: &quot;/images/books/83.jpg&quot;, &quot;price&quot;: 71.77, &quot;title&quot;: &quot;经济管理·模拟图书 45983&quot;, &quot;bookId&quot;: 45983}, {&quot;qty&quot;: 1, &quot;cover&quot;: &quot;/images/books/84.jpg&quot;, &quot;price&quot;: 148.85, &quot;title&quot;: &quot;计算机·模拟图书 95984&quot;, &quot;bookId&quot;: 95984}]</span>
+<span class="w"> total_amount: 292.39</span>
+<span class="w"></span></pre></div></body></html>

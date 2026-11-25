@@ -10,6 +10,9 @@ import com.bookstore.entity.Order;
 import com.bookstore.entity.OrderItem;
 import com.bookstore.exception.BusinessException;
 import com.bookstore.repository.BookRepository;
+import com.bookstore.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.bookstore.repository.CartItemRepository;
 import com.bookstore.repository.OrderItemRepository;
 import com.bookstore.repository.OrderRepository;
@@ -39,19 +42,24 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final CartItemRepository cartItemRepository;
+    private static final ObjectMapper JSON = new ObjectMapper();
+
     private final BookRepository bookRepository;
     private final BookCache bookCache;
+    private final UserRepository userRepository;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
                             CartItemRepository cartItemRepository,
                             BookRepository bookRepository,
-                            BookCache bookCache) {
+                            BookCache bookCache,
+                            UserRepository userRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.cartItemRepository = cartItemRepository;
         this.bookRepository = bookRepository;
         this.bookCache = bookCache;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -142,12 +150,38 @@ public class OrderServiceImpl implements OrderService {
                 ? BigDecimal.ZERO : new BigDecimal("10");
         order.setTotalAmount(total.add(shipping));
 
+        // hw8 反范式：冗余用户昵称、商品件数、图书快照，订单列表无需 JOIN users / order_item
+        order.setUserNickname(userRepository.findById(userId)
+                .map(u -> u.getNickname() != null && !u.getNickname().isBlank() ? u.getNickname() : u.getUsername())
+                .orElse(null));
+        order.setItemCount(items.stream().mapToInt(OrderItem::getQuantity).sum());
+        order.setBookSnapshot(buildBookSnapshot(items));
+
         Order saved = orderRepository.save(order);
         for (OrderItem oi : items) {
             oi.setOrderId(saved.getId());
         }
         List<OrderItem> savedItems = orderItemRepository.saveAll(items);
         return OrderDto.from(saved, savedItems);
+    }
+
+    /** 图书快照 JSON：[{bookId,title,cover,price,qty}] */
+    static String buildBookSnapshot(List<OrderItem> items) {
+        List<Map<String, Object>> snap = new ArrayList<>();
+        for (OrderItem oi : items) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("bookId", oi.getBookId());
+            m.put("title", oi.getTitle());
+            m.put("cover", oi.getCoverImg() != null ? oi.getCoverImg() : oi.getCoverEmoji());
+            m.put("price", oi.getPrice());
+            m.put("qty", oi.getQuantity());
+            snap.add(m);
+        }
+        try {
+            return JSON.writeValueAsString(snap);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("生成图书快照失败", e);
+        }
     }
 
     @Override

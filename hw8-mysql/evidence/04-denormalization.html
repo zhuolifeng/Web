@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset='utf-8'><title>hw8 反范式：订单列表 JOIN vs 单表冗余字段</title><style>
+body{margin:0;background:#0f1115;color:#d7dae0;font:12px/1.45 Menlo,Consolas,monospace}
+h1{font:600 18px -apple-system,sans-serif;margin:0 0 4px;color:#fff}
+.sub{color:#8b93a1;font:12px -apple-system,sans-serif;margin-bottom:14px}
+.wrap{padding:18px 22px}
+pre{white-space:pre;margin:0;background:#161a21;border:1px solid #262c36;border-radius:6px;padding:12px;overflow:hidden}
+.sec{color:#c084fc;font-weight:700}.sql{color:#60a5fa}
+.w{white-space:pre-wrap;word-break:break-all;display:inline-block;max-width:100%}
+.good{background:#14532d;color:#86efac;font-weight:700}.bad{background:#5f1d1d;color:#fca5a5;font-weight:700}
+.key{background:#3b2f0b;color:#fde68a;font-weight:700}
+</style></head><body><div class='wrap'><h1>hw8 反范式：订单列表 JOIN vs 单表冗余字段</h1><div class='sub'>scripts/run_all.sh 在本机 MySQL 上的实际输出（bookstore_hw8，books 10 万行）</div><pre><span class="sec">======== 8. 反范式收益：我的订单列表 ========</span>
+<span class="sql w">-- 范式化：JOIN users + JOIN order_items + GROUP BY</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT o.order_no, u.nickname, SUM(i.quantity) AS item_count, GROUP_CONCAT(i.book_title) AS titles, o.total_amount, o.created_at FROM orders o JOIN users u ON u.id = o.user_id JOIN order_items i ON i.order_id = o.id WHERE o.user_id = 42 GROUP BY o.id ORDER BY o.created_at DESC LIMIT 10</span>
++----+-------------+-------+------------+-------+----------------------------------------------+-------------------------+---------+--------------------+------+----------+---------------------------------+
+| id | select_type | table | partitions | type  | possible_keys                                | key                     | key_len | ref                | rows | filtered | Extra                           |
++----+-------------+-------+------------+-------+----------------------------------------------+-------------------------+---------+--------------------+------+----------+---------------------------------+
+|  1 | SIMPLE      | u     | NULL       | <span class="good">const</span> | <span class="key">PRIMARY</span>                                      | <span class="key">PRIMARY</span>                 | 8       | const              |    1 |   100.00 | <span class="bad">Using temporary</span>; <span class="bad">Using filesort</span> |
+|  1 | SIMPLE      | o     | NULL       | <span class="good">ref</span>   | PRIMARY,uk_orders_no,idx_orders_user_created | <span class="key">idx_orders_user_created</span> | 8       | const              |   10 |   100.00 | NULL                            |
+|  1 | SIMPLE      | i     | NULL       | <span class="good">ref</span>   | <span class="key">idx_items_order</span>                              | <span class="key">idx_items_order</span>         | 8       | bookstore_hw8.o.id |    1 |   100.00 | NULL                            |
++----+-------------+-------+------------+-------+----------------------------------------------+-------------------------+---------+--------------------+------+----------+---------------------------------+
+<span class="w"></span>
+<span class="sql w">-- 反范式：单表读取冗余字段</span>
+<span class="sql w">mysql&gt; EXPLAIN SELECT order_no, user_nickname, item_count, book_snapshot, total_amount, created_at FROM orders WHERE user_id = 42 ORDER BY created_at DESC LIMIT 10</span>
++----+-------------+--------+------------+------+-------------------------+-------------------------+---------+-------+------+----------+---------------------+
+| id | select_type | table  | partitions | type | possible_keys           | key                     | key_len | ref   | rows | filtered | Extra               |
++----+-------------+--------+------------+------+-------------------------+-------------------------+---------+-------+------+----------+---------------------+
+|  1 | SIMPLE      | orders | NULL       | <span class="good">ref</span>  | <span class="key">idx_orders_user_created</span> | <span class="key">idx_orders_user_created</span> | 8       | const |   10 |   100.00 | Backward index scan |
++----+-------------+--------+------------+------+-------------------------+-------------------------+---------+-------+------+----------+---------------------+
+<span class="w"></span>
+<span class="sql w">mysql&gt; SELECT order_no, user_nickname, item_count, book_snapshot, total_amount FROM orders WHERE user_id = 42 ORDER BY created_at DESC LIMIT 1\G</span>
+<span class="w">*************************** 1. row ***************************</span>
+<span class="w">     order_no: 20260000000000009893</span>
+<span class="w">user_nickname: 读者0042</span>
+<span class="w">   item_count: 3</span>
+<span class="w">book_snapshot: [{&quot;qty&quot;: 2, &quot;cover&quot;: &quot;/images/books/83.jpg&quot;, &quot;price&quot;: 71.77, &quot;title&quot;: &quot;经济管理·模拟图书 45983&quot;, &quot;bookId&quot;: 45983}, {&quot;qty&quot;: 1, &quot;cover&quot;: &quot;/images/books/84.jpg&quot;, &quot;price&quot;: 148.85, &quot;title&quot;: &quot;计算机·模拟图书 95984&quot;, &quot;bookId&quot;: 95984}]</span>
+<span class="w"> total_amount: 292.39</span></pre></div></body></html>

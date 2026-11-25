@@ -13,6 +13,8 @@ import com.bookstore.repository.BookRepository;
 import com.bookstore.repository.CartItemRepository;
 import com.bookstore.repository.OrderItemRepository;
 import com.bookstore.repository.OrderRepository;
+import com.bookstore.repository.UserRepository;
+import com.bookstore.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,8 @@ class OrderServiceImplTest {
     private BookRepository bookRepository;
     @Mock
     private BookCache bookCache;
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -128,6 +132,33 @@ class OrderServiceImplTest {
         // 验证购物车被清空
         verify(cartItemRepository).deleteByUserId(1L);
         verify(bookRepository).save(sampleBook);
+    }
+
+    @Test
+    @DisplayName("hw8 反范式 - 下单时冗余用户昵称、商品件数和图书快照")
+    void testCreateOrderDenormalizedFields() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("zhangsan");
+        user.setNickname("小张");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(cartItemRepository.findByUserIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Collections.singletonList(sampleCartItem));
+        when(bookRepository.findAllById(anyList()))
+                .thenReturn(Collections.singletonList(sampleBook));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(orderItemRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderCreateRequest req = new OrderCreateRequest();
+        req.setReceiver("张三");
+        req.setPhone("13800138000");
+
+        OrderDto result = orderService.createFromCart(1L, req);
+
+        assertEquals("小张", result.getUserNickname());
+        assertEquals(2, result.getItemCount());
+        assertEquals("[{\"bookId\":1,\"title\":\"三体\",\"cover\":null,\"price\":89.00,\"qty\":2}]",
+                result.getBookSnapshot());
     }
 
     @Test

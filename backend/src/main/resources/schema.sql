@@ -82,6 +82,10 @@ CREATE TABLE IF NOT EXISTS orders (
     status        VARCHAR(32)    DEFAULT 'PENDING',
     payment       VARCHAR(32)    DEFAULT NULL,
     created_at    DATETIME       DEFAULT CURRENT_TIMESTAMP,
+    -- hw8 反范式冗余字段（空间换时间，订单列表无需 JOIN users / order_item）
+    user_nickname VARCHAR(64)    DEFAULT NULL COMMENT '下单时用户昵称快照',
+    item_count    INT            DEFAULT NULL COMMENT '商品总件数',
+    book_snapshot JSON           DEFAULT NULL COMMENT '图书快照 [{bookId,title,cover,price,qty}]',
     PRIMARY KEY (id),
     UNIQUE KEY uk_orders_no (order_no),
     INDEX idx_orders_user (user_id)

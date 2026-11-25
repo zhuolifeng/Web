@@ -1,0 +1,18 @@
+mysql> SHOW COLUMNS FROM bookstore.orders WHERE Field IN ('user_nickname','item_count','book_snapshot');
++---------------+-------------+------+-----+---------+-------+
+| Field         | Type        | Null | Key | Default | Extra |
++---------------+-------------+------+-----+---------+-------+
+| book_snapshot | json        | YES  |     | NULL    |       |
+| item_count    | int         | YES  |     | NULL    |       |
+| user_nickname | varchar(64) | YES  |     | NULL    |       |
++---------------+-------------+------+-----+---------+-------+
+
+-- 通过 POST /api/v1/orders 真实下单（用户 hw8demo，昵称“反范式测试员”，购物车：bookId=2 ×2、bookId=3 ×1）后：
+mysql> SELECT order_no, user_id, user_nickname, item_count, book_snapshot, total_amount FROM bookstore.orders ORDER BY id DESC LIMIT 1\G
+*************************** 1. row ***************************
+     order_no: 2026112423055882BD82
+      user_id: 27
+user_nickname: 反范式测试员
+   item_count: 3
+book_snapshot: [{"qty": 1, "cover": "/images/to-live.jpg", "price": 3.0, "title": "活着", "bookId": 3}, {"qty": 2, "cover": "/images/sapiens.jpg", "price": 68.0, "title": "人类简史：从动物到上帝", "bookId": 2}]
+ total_amount: 139.00

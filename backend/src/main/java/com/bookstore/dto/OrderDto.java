@@ -1,6 +1,7 @@
 package com.bookstore.dto;
 
 import com.bookstore.entity.Order;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.bookstore.entity.OrderItem;
 
 import java.math.BigDecimal;
@@ -25,6 +26,12 @@ public class OrderDto {
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
     private List<OrderItem> items;
+    /** hw8 冗余字段 */
+    private String userNickname;
+    private Integer itemCount;
+    /** 已是 JSON 数组文本，原样输出给前端 */
+    @JsonRawValue
+    private String bookSnapshot;
 
     public OrderDto() {}
 
@@ -42,8 +49,20 @@ public class OrderDto {
         dto.totalAmount = order.getTotalAmount();
         dto.createdAt = order.getCreatedAt();
         dto.items = items;
+        dto.userNickname = order.getUserNickname();
+        dto.itemCount = order.getItemCount();
+        dto.bookSnapshot = order.getBookSnapshot();
         return dto;
     }
+
+    public String getUserNickname() { return userNickname; }
+    public void setUserNickname(String userNickname) { this.userNickname = userNickname; }
+
+    public Integer getItemCount() { return itemCount; }
+    public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }
+
+    public String getBookSnapshot() { return bookSnapshot; }
+    public void setBookSnapshot(String bookSnapshot) { this.bookSnapshot = bookSnapshot; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
